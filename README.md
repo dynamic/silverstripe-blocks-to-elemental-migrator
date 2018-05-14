@@ -176,5 +176,5 @@ ImageBlock::class => [
 ### ToDo
 
 - Documentation on handling table name collisions (supported at this time, not documented on process)
-- 
+- BlockArea to ElementalArea support
 - Version table migration support
