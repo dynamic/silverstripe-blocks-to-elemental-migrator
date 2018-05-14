@@ -3,7 +3,9 @@
     "type": "silverstripe-vendormodule",
     "description": "Migrate data from SilverStripe Blocks to SilverStripe Elemental",
     "keywords": [
-        "silverstripe", "elemental", "blocks"
+        "silverstripe",
+        "elemental",
+        "blocks"
     ],
     "license": "BSD-3-Clause",
     "authors": [
@@ -13,6 +15,10 @@
             "homepage": "http://www.dynamicagency.com"
         }
     ],
+    "require": {
+        "dnadesign/silverstripe-elemental": "^2@dev",
+        "sheadawson/silverstripe-blocks": "^2.0"
+    },
     "require-dev": {
         "phpunit/PHPUnit": "^5.7",
         "squizlabs/php_codesniffer": "*"
@@ -27,8 +33,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Dynamic\\BlockMigration\\": "src/",
-            "Dynamic\\BlockMigration\\Tests\\": "tests/"
+            "Dynamic\\BlockMigration\\": "src/"
         }
     },
     "minimum-stability": "dev",
