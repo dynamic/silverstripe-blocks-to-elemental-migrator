@@ -2,11 +2,14 @@
 
 namespace Dynamic\BlockMigration\Tasks;
 
+use DNADesign\Elemental\Models\ElementalArea;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
 use SheaDawson\Blocks\Model\Block;
+use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\BuildTask;
+use SilverStripe\Dev\Debug;
 use SilverStripe\ORM\Queries\SQLSelect;
 
 /**
@@ -75,7 +78,37 @@ class BlocksToElementsTask extends BuildTask
     protected function processBlockRecords($records, $elementType, $relations)
     {
         foreach ($records as $record) {
+            foreach ($this->yieldBlockPages($record) as $page) {
+                $this->generateBlockElement($page, $record, $elementType, $relations);
+            }
+        }
+    }
+
+    /**
+     * @param SiteTree $page
+     * @param Block $record
+     * @param $elementType
+     * @param $relations
+     * @throws \SilverStripe\ORM\ValidationException
+     */
+    protected function generateBlockElement(SiteTree $page, Block $record, $elementType, $relations)
+    {
+        if ($record) {
             $element = $record->newClassInstance($elementType);
+            foreach ($page->getElementalRelations() as $relation) {
+                $areaID = $relation . 'ID';
+                if (!$page->$areaID) {
+                    $area = ElementalArea::create();
+                    $area->OwnerClassName = $page->ClassName;
+                    $area->write();
+                    $page->$areaID = $area->ID;
+                    $page->write();
+                } elseif ($area = ElementalArea::get()->filter('ID', $page->$areaID)->first()) {
+                    $area->write();
+                }
+            }
+            $area = $page->ElementalArea();
+            $element->ParentID = $area->ID;
             $element->write();
 
             static::write_it("Element of type {$elementType::singleton()->getType()} created with Title: \"{$element->Title}\".", false);
@@ -94,6 +127,17 @@ class BlocksToElementsTask extends BuildTask
 
                 }
             }
+        }
+    }
+
+    /**
+     * @param Block $block
+     * @return \Generator
+     */
+    protected function yieldBlockPages(Block $block)
+    {
+        foreach ($block->Pages() as $page) {
+            yield $page;
         }
     }
 
@@ -132,7 +176,7 @@ class BlocksToElementsTask extends BuildTask
      */
     protected function processOneRelation($element, $legacyRecord, $relation = [])
     {
-        if(isset($relation['LegacyObsolete'])){
+        if (isset($relation['LegacyObsolete'])) {
             $this->migrateObsoleteData($relation);
         }
     }
