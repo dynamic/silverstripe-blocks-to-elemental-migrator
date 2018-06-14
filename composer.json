@@ -17,7 +17,8 @@
     ],
     "require": {
         "dnadesign/silverstripe-elemental": "^2@dev",
-        "sheadawson/silverstripe-blocks": "^2.0"
+        "sheadawson/silverstripe-blocks": "^2.0",
+        "dynamic/silverstripe-classname-update-tasks": "^1.0@dev"
     },
     "require-dev": {
         "phpunit/PHPUnit": "^5.7",
