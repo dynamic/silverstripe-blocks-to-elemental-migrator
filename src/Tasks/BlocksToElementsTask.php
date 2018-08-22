@@ -62,20 +62,21 @@ class BlocksToElementsTask extends BuildTask
         DatabaseClassNameUpdateTask::singleton()
             ->run(Controller::curr()->getRequest(), $mappings);*/
 
-        //$toTable = Dynamic\DynamicBlocks\Model\AccordionPanel::getSchema()->tableName(Dynamic\DynamicBlocks\Model\AccordionPanel::class);
-        $toTable = 'AccordionPanel_block';
-        $manipulator = new DataManipulator('AccordionPanel', $toTable);
-        $manipulator->migrateData();
-
-
         $migrationMapping = $this->config()->get('migration_mapping');
 
         foreach ($migrationMapping as $block => $mapping) {
+            foreach($mapping['Relations'] as $key => $data){
+                $manipulator = new DataManipulator($data['MigrateOptionFromTable'], $data['BlockRelatedObject']);
+                $manipulator->migrateData();
+            }
+        }
+
+        /*foreach ($migrationMapping as $block => $mapping) {
             self::write_it("Migrating {$block} to {$mapping['Element']}");
             $relations = isset($mapping['Relations']) ? $mapping['Relations'] : null;
             $callable = isset($mapping['CustomMethod']) ? $mapping['CustomMethod'] : null;
             $this->processBlockRecords($block::get(), $mapping['Element'], $relations, $callable);
-        }
+        }*/
     }
 
     /**

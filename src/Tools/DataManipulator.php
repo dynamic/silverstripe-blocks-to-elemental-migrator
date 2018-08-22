@@ -2,7 +2,6 @@
 
 namespace Dynamic\BlockMigration\Tools;
 
-use Dynamic\DynamicBlocks\Model\AccordionPanel;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
@@ -24,6 +23,11 @@ class DataManipulator
     }
     use Injectable;
     use Configurable;
+
+    /**
+     * @var string The classname of the object that needs the data.
+     */
+    private $to_class;
 
     /**
      * @var string This is the name of the table that is now used by another class.
@@ -53,13 +57,33 @@ class DataManipulator
     /**
      * DataManipulator constructor.
      * @param string $fromTable
-     * @param string $toTable
+     * @param string $toClass
      */
-    public function __construct($fromTable, $toTable)
+    public function __construct($fromTable, $toClass)
     {
         $this->setFromTable($fromTable);
-        $this->setToTable($toTable);
+        $this->setToClass($toClass);
+        $this->setToTable($toClass::getSchema()->tableName($toClass));
         $this->setSchema(DB::getConfig()['database'], 'AccordionPanel');
+    }
+
+    /**
+     * @param string $toClass
+     * @return $this
+     */
+    public function setToClass($toClass)
+    {
+        $this->to_class = $toClass;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getToClass()
+    {
+        return $this->to_class;
     }
 
     /**
@@ -126,9 +150,10 @@ class DataManipulator
 
     public function migrateData()
     {
-        $class = AccordionPanel::class;
+        $class = $this->getToClass();
         $table = $this->getFromTable();
-        $results = $this->getResults("SELECT * FROM {$this->getFromTable()}");
+
+        $results = $this->getResults("SELECT * FROM \"{$table}\"");
 
         foreach ($results as $result) {
             Message::terminal("Migrating {$class::singleton()->singular_name()}: {$result['ID']}");
