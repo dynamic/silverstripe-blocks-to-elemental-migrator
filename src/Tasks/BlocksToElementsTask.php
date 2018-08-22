@@ -3,6 +3,7 @@
 namespace Dynamic\BlockMigration\Tasks;
 
 use DNADesign\Elemental\Models\ElementalArea;
+use Dynamic\BlockMigration\Tools\DataManipulator;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
 use Dynamic\ClassNameUpdate\BuildTasks\DatabaseClassNameUpdateTask;
 use SheaDawson\Blocks\Model\Block;
@@ -57,14 +58,23 @@ class BlocksToElementsTask extends BuildTask
      */
     public function run($request)
     {
-        $mappings = $this->getBlockClassMapping();
+        /*$mappings = $this->getBlockClassMapping();
         DatabaseClassNameUpdateTask::singleton()
-            ->run(Controller::curr()->getRequest(), $mappings);
+            ->run(Controller::curr()->getRequest(), $mappings);*/
+
+        //$toTable = Dynamic\DynamicBlocks\Model\AccordionPanel::getSchema()->tableName(Dynamic\DynamicBlocks\Model\AccordionPanel::class);
+        $toTable = 'AccordionPanel_block';
+        $manipulator = new DataManipulator('AccordionPanel', $toTable);
+        $manipulator->migrateData();
+
 
         $migrationMapping = $this->config()->get('migration_mapping');
 
         foreach ($migrationMapping as $block => $mapping) {
-            $this->processBlockRecords($block::get(), $mapping['Element'], $mapping['Relations']);
+            self::write_it("Migrating {$block} to {$mapping['Element']}");
+            $relations = isset($mapping['Relations']) ? $mapping['Relations'] : null;
+            $callable = isset($mapping['CustomMethod']) ? $mapping['CustomMethod'] : null;
+            $this->processBlockRecords($block::get(), $mapping['Element'], $relations, $callable);
         }
     }
 
@@ -121,11 +131,11 @@ class BlocksToElementsTask extends BuildTask
      * @param $records Legacy Block Records
      * @param $elementType
      */
-    protected function processBlockRecords($records, $elementType, $relations)
+    protected function processBlockRecords($records, $elementType, $relations, $callable = null)
     {
         foreach ($records as $record) {
             foreach ($this->yieldBlockPages($record) as $page) {
-                $this->generateBlockElement($page, $record, $elementType, $relations);
+                $this->generateBlockElement($page, $record, $elementType, $relations, $callable);
             }
         }
     }
@@ -137,41 +147,54 @@ class BlocksToElementsTask extends BuildTask
      * @param $relations
      * @throws \SilverStripe\ORM\ValidationException
      */
-    protected function generateBlockElement(SiteTree $page, Block $record, $elementType, $relations)
+    protected function generateBlockElement(SiteTree $page, Block $record, $elementType, $relations = null, $callable = null)
     {
         if ($record) {
             if (array_search(DataObject::class, ClassInfo::ancestry($elementType))) {
                 $element = $record->newClassInstance($elementType);
-                foreach ($page->getElementalRelations() as $relation) {
-                    $areaID = $relation . 'ID';
-                    if (!$page->$areaID) {
-                        $area = ElementalArea::create();
-                        $area->OwnerClassName = $page->ClassName;
-                        $area->write();
-                        $page->$areaID = $area->ID;
-                        $page->write();
-                    } elseif ($area = ElementalArea::get()->filter('ID', $page->$areaID)->first()) {
-                        $area->write();
-                    }
-                }
-                $area = $page->ElementalArea();
-                $element->ParentID = $area->ID;
-                $element->write();
-
-                static::write_it("Element of type {$elementType::singleton()->getType()} created with Title: \"{$element->Title}\".", false);
-
-                foreach ($relations as $relationType => $relationConfiguration) {
-                    foreach ($relationConfiguration as $relation) {
-                        switch ($relationType) {
-                            case 'ManyMany':
-                            case 'HasMany':
-                                $this->processManyRelation($element, $record, $relations['HasMany']);
-                                break;
-                            case 'HasOne':
-                                $this->processOneRelation($element, $record, $relations['HasOne']);
-                                break;
+                if ($page->hasMethod('getElementalRelations')) {
+                    foreach ($page->getElementalRelations() as $relation) {
+                        $areaID = $relation . 'ID';
+                        if (!$page->$areaID) {
+                            $area = ElementalArea::create();
+                            $area->OwnerClassName = $page->ClassName;
+                            $area->write();
+                            $page->$areaID = $area->ID;
+                            $page->write();
+                        } elseif ($area = ElementalArea::get()->filter('ID', $page->$areaID)->first()) {
+                            $area->write();
                         }
+                    }
+                    $area = $page->ElementalArea();
+                    $element->ParentID = $area->ID;
+                    $element->LegacyID = $record->ID;
+                    $element->write();
 
+                    static::write_it("{$element->hasMethod($callable)}");
+
+                    static::write_it("Attempting to call {$callable} on {$elementType}\n");
+                    if ($callable !== null && $element->hasMethod($callable)) {
+                        static::write_it("Method {$callable} is available\n");
+                        $element->$callable($page, $block, $element, $relations);
+                    }
+
+                    static::write_it("Element of type {$elementType::singleton()->getType()} created with Title: \"{$element->Title}\".", false);
+
+                    if ($relations !== null) {
+                        foreach ($relations as $relationType => $relationConfiguration) {
+                            foreach ($relationConfiguration as $relation) {
+                                switch ($relationType) {
+                                    case 'ManyMany':
+                                    case 'HasMany':
+                                        $this->processManyRelation($element, $record, $relations['HasMany']);
+                                        break;
+                                    case 'HasOne':
+                                        $this->processOneRelation($element, $record, $relations['HasOne']);
+                                        break;
+                                }
+
+                            }
+                        }
                     }
                 }
             } else {
