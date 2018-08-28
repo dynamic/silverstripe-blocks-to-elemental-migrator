@@ -14,9 +14,11 @@ use SilverStripe\Versioned\Versioned;
  */
 class BlockElementTranslator
 {
-    use Extensible;
+    use Extensible {
+        defineMethods as extensibleDefineMethods;
+    }
     use Injectable;
-    
+
     /**
      * @param Block $record
      * @param string $elementType
@@ -25,8 +27,13 @@ class BlockElementTranslator
      */
     public static function translate_block(Block $block, $elementType, $relations)
     {
+        if (empty($relations)) return;
+
         if ($block->exists()) {
             $element = $block->newClassInstance($elementType);
+
+            self::singleton()->extend('updateNewElementInstance', $element);
+
             if ($block->hasMethod('isPublished')) {
                 $element->writeToStage(Versioned::DRAFT);
 
