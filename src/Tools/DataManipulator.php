@@ -166,7 +166,7 @@ class DataManipulator
                 $record->Title = $this->getDefaultTitle($class);
             }
 
-            //$this->extend('updateMigrationRecord', $record);
+            $this->extend('updateMigrationRecord', $record, $result);
 
             if ($record->hasExtension(Versioned::class)) {
                 $record->writeToStage(Versioned::DRAFT);
