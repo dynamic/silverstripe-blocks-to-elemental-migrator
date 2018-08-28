@@ -5,6 +5,8 @@ namespace Dynamic\BlockMigration\Tasks;
 use DNADesign\Elemental\Models\ElementalArea;
 use Dynamic\BlockMigration\Tools\BlockElementTranslator;
 use Dynamic\BlockMigration\Tools\DataManipulator;
+use Dynamic\BlockMigration\Tools\ElementalAreaGenerator;
+use Dynamic\BlockMigration\Tools\Message;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
 use Dynamic\ClassNameUpdate\BuildTasks\DatabaseClassNameUpdateTask;
 use SheaDawson\Blocks\Model\Block;
@@ -65,17 +67,22 @@ class BlocksToElementsTask extends BuildTask
 
         $migrationMapping = $this->config()->get('migration_mapping');
 
-        /*foreach ($migrationMapping as $block => $mapping) {
-            foreach($mapping['Relations'] as $key => $data){
-                $manipulator = new DataManipulator($data['MigrateOptionFromTable'], $data['BlockRelatedObject']);
-                $manipulator->migrateData();
+        foreach ($migrationMapping as $block => $mapping) {
+            if (isset($mapping['MigrateOptionFromTable'])) {
+                foreach ($mapping['MigrateOptionFromTable'] as $relationName => $tableData) {
+                    if (isset($mapping['Relations']) && isset($mapping['Relations'][$relationName])) {
+                        foreach($tableData as $sourceTable => $destinationObject){
+                            $manipulator = new DataManipulator($sourceTable, $destinationObject);
+                            $manipulator->migrateData();
+                        }
+                    }
+                }
             }
-        }*/
+        }
 
         foreach ($migrationMapping as $block => $mapping) {
-            self::write_it("Migrating {$block} to {$mapping['Element']}");
+            Message::terminal("Migrating {$block} to {$mapping['Element']}");
             $relations = isset($mapping['Relations']) ? $mapping['Relations'] : null;
-            //$callable = isset($mapping['CustomMethod']) ? $mapping['CustomMethod'] : null;
             $this->processBlockRecords($block::get(), $mapping['Element'], $relations);
         }
     }
@@ -139,20 +146,7 @@ class BlocksToElementsTask extends BuildTask
             if ($record->Pages()->exists()) {
                 foreach ($this->yieldBlockPages($record) as $page) {
                     if ($page->hasMethod('getElementalRelations')) {
-                        foreach ($page->getElementalRelations() as $relation) {
-                            $areaID = $relation . 'ID';
-                            if (!$page->$areaID) {
-                                $area = ElementalArea::create();
-                                $area->OwnerClassName = $page->ClassName;
-                                $area->write();
-                                $page->$areaID = $area->ID;
-                                $page->write();
-                            } elseif ($area = ElementalArea::get()->filter('ID', $page->$areaID)->first()) {
-                                $area->write();
-                            }
-                        }
-                        $area = $page->ElementalArea();
-
+                        $area = ElementalAreaGenerator::find_or_make_elemental_area($page);
                         $element = BlockElementTranslator::translate_block($record, $elementType, $relations);
 
                         $element->ParentID = $area->ID;

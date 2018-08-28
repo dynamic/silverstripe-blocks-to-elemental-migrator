@@ -64,7 +64,7 @@ class DataManipulator
         $this->setFromTable($fromTable);
         $this->setToClass($toClass);
         $this->setToTable($toClass::getSchema()->tableName($toClass));
-        $this->setSchema(DB::getConfig()['database'], 'AccordionPanel');
+        $this->setSchema(DB::getConfig()['database'], $fromTable);
     }
 
     /**
@@ -166,12 +166,19 @@ class DataManipulator
                 $record->Title = $this->getDefaultTitle($class);
             }
 
-            $this->extend('updateMigrationRecord', $record, $result);
+            //$this->extend('updateMigrationRecord', $record, $result);
 
             if ($record->hasExtension(Versioned::class)) {
+                $published = $record->isPublished();
+            }
+
+            $record->write();
+
+            if (isset($published)) {
                 $record->writeToStage(Versioned::DRAFT);
-            } else {
-                $record->write();
+                if ($published) {
+                    $record->publishRecursive();
+                }
             }
 
             Message::terminal("\tRecord migrated");
