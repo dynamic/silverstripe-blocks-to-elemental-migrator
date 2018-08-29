@@ -52,6 +52,11 @@ class DataManipulator
     /**
      * @var array
      */
+    private $delete_records = [];
+
+    /**
+     * @var array
+     */
     private static $default_title;
 
     /**
@@ -159,7 +164,9 @@ class DataManipulator
             Message::terminal("Migrating {$class::singleton()->singular_name()}: {$result['ID']}");
             $record = $class::create();
             foreach ($this->prepareKeys($table, $result) as $key => $val) {
-                $record->$key = $val;
+                if($key != 'ClassName'){
+                    $record->$key = $val;
+                }
             }
 
             if (!$record->Title) {
@@ -183,13 +190,10 @@ class DataManipulator
 
             Message::terminal("\tRecord migrated");
 
-            //todo this doesn't consistently delete the data from the previous table as needed
-            $where = ["\"{$table}\".\"ID\"" => $result['ID']];
-            $deleteQuery = SQLDelete::create()
-                ->setFrom($table)
-                ->setWhere($where);
-            $deleteQuery->execute();
+            $this->delete_records[$table][$result['ID']] = [$result['ID']];
         }
+
+        $this->deleteLegacyData();
     }
 
     /**
@@ -223,11 +227,30 @@ class DataManipulator
     {
         $config = $this->config()->get('default_title');
         if (!is_array($config) || is_null($config) || !isset($config[$class])) {
-            $title = "Migrated {$record->singular_name()} record";
+            $title = "Migrated {$class::singleton()->singular_name()} record";
         } else {
             $config[$class];
         }
 
         return $title;
+    }
+
+    /**
+     *
+     */
+    protected function deleteLegacyData()
+    {
+        foreach ($this->delete_records as $table => $ids) {
+            foreach($ids as $key => $val){
+                //todo this doesn't consistently delete the data from the previous table as needed
+                $where = ["\"{$table}\".\"ID\"" => $val];
+                $deleteQuery = SQLDelete::create()
+                    ->setFrom($table)
+                    ->setWhere($where);
+                $deleteQuery->execute();
+
+                unset($deleteQuery);
+            }
+        }
     }
 }

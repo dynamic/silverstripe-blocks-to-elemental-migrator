@@ -4,8 +4,10 @@ namespace Dynamic\BlockMigration\Tools;
 
 use Dynamic\BlockMigration\Traits\Translator;
 use SheaDawson\Blocks\Model\Block;
+use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Dev\Debug;
 use SilverStripe\Versioned\Versioned;
 
 /**
@@ -18,6 +20,14 @@ class BlockElementTranslator
         defineMethods as extensibleDefineMethods;
     }
     use Injectable;
+    use Configurable;
+
+    /**
+     * Explicitly traverse $db fields and migrate field to field.
+     *
+     * @var bool
+     */
+    private static $explicit_data_transfer = false;
 
     /**
      * @param Block $record
@@ -178,6 +188,18 @@ class BlockElementTranslator
             } else {
                 $clonedItem = $item->newClassInstance($newInstance);
             }
+
+            /*if (static::singleton()->config()->get('explicit_data_transfer')) {
+                $clonedItem = static::set_explicit($item, $clonedItem);
+            }*/
+
+            $clonedItem->write();
+
+            if ($clonedItem->hasExtension(Versioned::class)) {
+                $clonedItem->writeToStage(Versioned::DRAFT);
+                $clonedItem->publishRecursive();
+            }
+
             $dest->add($clonedItem);
         }
     }
@@ -205,6 +227,7 @@ class BlockElementTranslator
         } else {
             $clonedItem = $item->newClassInstance($elementRelation);
         }
+
         $destinationObject->setComponent($elementRelation, $clonedItem);
     }
 
@@ -251,5 +274,19 @@ class BlockElementTranslator
         return ($sourceObject->getRelationClass($blockRelation) == $destinationObject->getRelationClass($elementRelation))
             ? false
             : $destinationObject->getRelationClass($elementRelation);
+    }
+
+    /**
+     * @param $item
+     * @param $clonedItem
+     * @return mixed
+     */
+    protected static function set_explicit($item, $clonedItem)
+    {
+        foreach ($item->db() as $field) {
+            $clonedItem->$field = $item->$field;
+        }
+
+        return $clonedItem;
     }
 }

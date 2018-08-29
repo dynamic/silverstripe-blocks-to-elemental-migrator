@@ -9,6 +9,7 @@ use Dynamic\BlockMigration\Tools\ElementalAreaGenerator;
 use Dynamic\BlockMigration\Tools\Message;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
 use Dynamic\ClassNameUpdate\BuildTasks\DatabaseClassNameUpdateTask;
+use Dynamic\Elements\Accordion\Elements\ElementAccordion;
 use SheaDawson\Blocks\Model\Block;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
@@ -63,7 +64,7 @@ class BlocksToElementsTask extends BuildTask
     {
         /*$mappings = $this->getBlockClassMapping();
         DatabaseClassNameUpdateTask::singleton()
-            ->run(Controller::curr()->getRequest(), $mappings);*/
+            ->run(Controller::curr()->getRequest(), $mappings); //*/
 
         $migrationMapping = $this->config()->get('migration_mapping');
 
@@ -84,7 +85,7 @@ class BlocksToElementsTask extends BuildTask
             Message::terminal("Migrating {$block} to {$mapping['Element']}");
             $relations = isset($mapping['Relations']) ? $mapping['Relations'] : null;
             $this->processBlockRecords($block::get(), $mapping['Element'], $relations);
-        }
+        } //*/
     }
 
     /**
@@ -168,26 +169,6 @@ class BlocksToElementsTask extends BuildTask
     {
         foreach ($block->Pages() as $page) {
             yield $page;
-        }
-    }
-
-    /**
-     * @param string $message
-     * @param bool $indent
-     */
-    protected static function write_it($message = '', $indent = true)
-    {
-        if (Director::is_cli()) {
-            if ($indent) {
-                echo "\t";
-            }
-            echo "{$message}\n";
-        } else {
-            if ($indent) {
-                echo "<p style='margin-left: 25px;'>{$message}</p>";
-            } else {
-                echo "<p>{$message}</p>";
-            }
         }
     }
 }
