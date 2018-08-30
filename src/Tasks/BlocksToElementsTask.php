@@ -72,10 +72,10 @@ class BlocksToElementsTask extends BuildTask
             if (isset($mapping['MigrateOptionFromTable'])) {
                 foreach ($mapping['MigrateOptionFromTable'] as $relationName => $tableData) {
                     if (isset($mapping['Relations']) && isset($mapping['Relations'][$relationName])) {
-                        foreach($tableData as $sourceTable => $destinationObject){
-                            $manipulator = new DataManipulator($sourceTable, $destinationObject);
-                            $manipulator->migrateData();
-                        }
+                        $manipulationConfig = $this->getManipulationConfig($tableData);
+
+                        $manipulator = new DataManipulator($manipulationConfig);
+                        $manipulator->migrateData();
                     }
                 }
             }
@@ -171,5 +171,24 @@ class BlocksToElementsTask extends BuildTask
         foreach ($block->Pages() as $page) {
             yield $page;
         }
+    }
+
+    /**
+     * @param $tableData
+     * @return array
+     */
+    protected function getManipulationConfig($tableData)
+    {
+        $config = [];
+        foreach ($tableData as $key => $val) {
+            if ($key != 'UseParentTable') {
+                $config['SourceTable'] = $key;
+                $config['ToClass'] = $val;
+            } else {
+                $config['ParentTable'] = true;
+            }
+        }
+
+        return $config;
     }
 }

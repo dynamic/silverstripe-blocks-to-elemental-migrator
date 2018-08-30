@@ -10,6 +10,7 @@ use SilverStripe\ORM\DB;
 use SilverStripe\ORM\Queries\SQLAssignmentRow;
 use SilverStripe\ORM\Queries\SQLDelete;
 use SilverStripe\ORM\Queries\SQLInsert;
+use SilverStripe\ORM\Queries\SQLSelect;
 use SilverStripe\Versioned\Versioned;
 
 /**
@@ -50,6 +51,11 @@ class DataManipulator
     private $singleton;
 
     /**
+     * @var bool Whether we are querying a parent table as the DataObject doesn't have it's own table. This is fairly basic and doesn't support multi-level hierarchy at this time.
+     */
+    private $use_parent_table = false;
+
+    /**
      * @var array
      */
     private $delete_records = [];
@@ -64,12 +70,19 @@ class DataManipulator
      * @param string $fromTable
      * @param string $toClass
      */
-    public function __construct($fromTable, $toClass)
+    public function __construct($configuration)
     {
-        $this->setFromTable($fromTable);
+        $toClass = $configuration['ToClass'];
+
+        $this->setFromTable($configuration['SourceTable']);
         $this->setToClass($toClass);
-        $this->setToTable($toClass::getSchema()->tableName($toClass));
-        $this->setSchema(DB::getConfig()['database'], $fromTable);
+
+        if (isset($configuration['ParentTable']) && $configuration['ParentTable']) {
+            $this->setParentTable($configuration['ParentTable']);
+        }
+
+        $this->setToTable($toClass::getSchema()->tableName($configuration['ToClass']));
+        $this->setSchema(DB::getConfig()['database'], $configuration['SourceTable']);
     }
 
     /**
@@ -128,12 +141,31 @@ class DataManipulator
     }
 
     /**
+     * @param $parentTable
+     * @return $this
+     */
+    public function setParentTable($parentTable)
+    {
+        $this->use_parent_table = $parentTable;
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getParentTable()
+    {
+        return $this->use_parent_table;
+    }
+
+    /**
      * @param string $database
      * @param string $table
      */
     public function setSchema($database, $table)
     {
-        $results = $this->getResults("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'{$table}' AND TABLE_SCHEMA = '{$database}'");
+        $results = $this->getDBQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'{$table}' AND TABLE_SCHEMA = '{$database}'");
 
         $this->schema = static::results_to_array($results);
         return $this;
@@ -158,13 +190,17 @@ class DataManipulator
         $class = $this->getToClass();
         $table = $this->getFromTable();
 
-        $results = $this->getResults("SELECT * FROM \"{$table}\"");
+        $where = ($this->getParentTable())
+            ? ['ClassName' => $class]
+            : null;
+
+        $results = $this->getResults($table, '*', $where);
 
         foreach ($results as $result) {
             Message::terminal("Migrating {$class::singleton()->singular_name()}: {$result['ID']}");
             $record = $class::create();
             foreach ($this->prepareKeys($table, $result) as $key => $val) {
-                if($key != 'ClassName'){
+                if ($key != 'ClassName') {
                     $record->$key = $val;
                 }
             }
@@ -214,7 +250,24 @@ class DataManipulator
      * @param $query
      * @return \SilverStripe\ORM\Connect\Query
      */
-    protected function getResults($query)
+    protected function getResults($from, $select, $where)
+    {
+        $query = new SQLSelect();
+        $query->addFrom($from);
+        if ($where !== null) {
+            $query->addWhere($where);
+        }
+
+        $this->extend('updateResultsQuery', $query);
+
+        return $query->execute();
+    }
+
+    /**
+     * @param $query
+     * @return \SilverStripe\ORM\Connect\Query
+     */
+    protected function getDBQuery($query)
     {
         return DB::query($query);
     }
@@ -241,7 +294,7 @@ class DataManipulator
     protected function deleteLegacyData()
     {
         foreach ($this->delete_records as $table => $ids) {
-            foreach($ids as $key => $val){
+            foreach ($ids as $key => $val) {
                 //todo this doesn't consistently delete the data from the previous table as needed
                 $where = ["\"{$table}\".\"ID\"" => $val];
                 $deleteQuery = SQLDelete::create()
