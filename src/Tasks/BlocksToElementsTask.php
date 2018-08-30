@@ -83,7 +83,7 @@ class BlocksToElementsTask extends BuildTask
 
         foreach ($migrationMapping as $block => $mapping) {
             Message::terminal("Migrating {$block} to {$mapping['Element']}");
-            $relations = isset($mapping['Relations']) ? $mapping['Relations'] : null;
+            $relations = isset($mapping['Relations']) ? $mapping['Relations'] : [];
             $this->processBlockRecords($block::get(), $mapping['Element'], $relations);
         } //*/
     }
@@ -159,6 +159,7 @@ class BlocksToElementsTask extends BuildTask
                 $element = BlockElementTranslator::translate_block($record, $elementType, $relations);
             }
         }
+        die;
     }
 
     /**

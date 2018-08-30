@@ -37,12 +37,12 @@ class BlockElementTranslator
      */
     public static function translate_block(Block $block, $elementType, $relations)
     {
-        if (empty($relations)) return;
-
         if ($block->exists()) {
             $element = $block->newClassInstance($elementType);
 
             self::singleton()->extend('updateNewElementInstance', $element);
+
+            $element->write();
 
             if ($block->hasMethod('isPublished')) {
                 $element->writeToStage(Versioned::DRAFT);
@@ -50,11 +50,11 @@ class BlockElementTranslator
                 if ($block->isPublished()) {
                     $element->publishRecursive();
                 }
-            } else {
-                $element->write();
             }
 
-            static::duplicateRelations($block, $element, $relations);
+            if (!empty($relations)) {
+                static::duplicateRelations($block, $element, $relations);
+            }
 
             return $element;
         }
