@@ -18,7 +18,7 @@ This module provides a base task that is customisable to allow for additional bl
 ## Usage
 
 ### Configuration
-Configuration supports mapping Blocks and their relations to DataObjects to Elements and their relations to DataObjects. Below is a sample configuration migrating `PageSectionBlock`, `PromoBlock` and `ImageBlock` to `ElementFeatures`, `ElementPromos` and `ElementImage` respectively.
+Configuration supports mapping Blocks and their relations to DataObjects to Elements and their relations to DataObjects. Below is a sample configuration migrating `AccordionBlock `, `ImageBlock ` and `RecentBlogPostsBlock ` to `ElementAccordion `, `ElementImage ` and `ElementBlogPosts ` respectively.
 
 
 **blockmigration.yml**
@@ -26,44 +26,30 @@ Configuration supports mapping Blocks and their relations to DataObjects to Elem
 ```yml
 Dynamic\BlockMigration\Tasks\BlocksToElementsTask:
   mappings:
-    PageSectionBlock:  Dynamic\DynamicBlocks\Block\PageSectionBlock
-    PromoBlock: Dynamic\DynamicBlocks\Block\PromoBlock
+    AccordionBlock: Dynamic\DynamicBlocks\Block\AccordionBlock
+    AccordionPanel: Dynamic\DynamicBlocks\Model\AccordionPanel
     ImageBlock: Dynamic\DynamicBlocks\Block\ImageBlock
-    PageSectionObject: Dynamic\DynamicBlocks\Model\PageSectionObject
-    PromoObject: Dynamic\DynamicBlocks\Model\PromoObject
+    RecentBlogPostsBlock: Dynamic\DynamicBlocks\Block\RecentBlogPostsBlock
 
   migration_mapping:
-    Dynamic\DynamicBlocks\Block\PageSectionBlock:
-      Element: Dynamic\Elements\Features\Elements\ElementFeatures
+    ##Accordion
+    Dynamic\DynamicBlocks\Block\AccordionBlock:
+      Element: Dynamic\Elements\Accordion\Elements\ElementAccordion
       Relations:
-        HasMany:
-          BlockRelationName: 'Sections'
-          BlockRelationInverseID: 'PageSectionBlockID'
-          BlockRelatedObject: Dynamic\DynamicBlocks\Model\PageSectionObject
-          BlockLegacyRelationObjectClassName: 'PageSectionObject'
-          ElementRelationName: 'Features'
-          ElementRelationObject: Dynamic\Elements\Features\Model\FeatureObject
-    Dynamic\DynamicBlocks\Block\PromoBlock:
-      Element: Dynamic\Elements\Promos\Elements\ElementPromos
-      Relations:
-        HasMany:
-          BlockRelationName: 'Promos'
-          BlockRelationInverseID: 'PageSectionBlockID'
-          BlockRelatedObject: Dynamic\DynamicBlocks\Model\PromoObject
-          BlockLegacyRelationObjectClassName: 'PromoObject'
-          ElementRelationName: 'Promos'
-          ElementRelationObject: Dynamic\BaseObject\Model\BaseElementObject
-          LegacyObsolete: true
+        Panels: 'Panels'
+      MigrateOptionFromTable:
+        Panels:
+          AccordionPanel: Dynamic\DynamicBlocks\Model\AccordionPanel
+    ##Image
     Dynamic\DynamicBlocks\Block\ImageBlock:
-      Element: Dynamic\Elements\Features\Elements\ElementImage
+      Element: Dynamic\Elements\Image\Elements\ElementImage
       Relations:
-        HasOne:
-          BlockRelationName: 'Image'
-          BlockRelatedObject: SilverStripe\Assets\Image
-          ElementRelationName: 'Image'
-          ElementRelationObject: SilverStripe\Assets\Image
+        Image: 'Image'
+    ##Recent Blog Posts
+    Dynamic\DynamicBlocks\Block\RecentBlogPostsBlock:
+      Element: Dynamic\Elements\Blog\Elements\ElementBlogPosts
+      Relations:
+        Blog: 'Blog'
 ```
 
-### ToDo
-
-- Version table migration support
+You may run into some snags depending on your project. Check out the [Advanced Configuration](docs/en/advanced/AdvancedUsage.md) for additional options and suggestions.
