@@ -159,7 +159,6 @@ class BlocksToElementsTask extends BuildTask
                 $element = BlockElementTranslator::translate_block($record, $elementType, $relations);
             }
         }
-        die;
     }
 
     /**
