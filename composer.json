@@ -16,7 +16,7 @@
         }
     ],
     "require": {
-        "dnadesign/silverstripe-elemental": "^2@dev",
+        "dnadesign/silverstripe-elemental": "^3@dev",
         "sheadawson/silverstripe-blocks": "^2.0",
         "dynamic/silverstripe-classname-update-tasks": "^1.0@dev"
     },
@@ -29,7 +29,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "1.0.x-dev"
+            "dev-master": "2.0.x-dev"
         }
     },
     "autoload": {
