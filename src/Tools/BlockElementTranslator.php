@@ -61,7 +61,8 @@ class BlockElementTranslator
     }
 
     /**
-     * Copies the given relations from this object to the destination
+     * Copies the given relations from this object to the destination.
+     * This method was adopted from DataObject to support cross-object relation migrations.
      *
      * @param DataObject $sourceObject the source object to duplicate from
      * @param DataObject $destinationObject the destination object to populate with the duplicated relations

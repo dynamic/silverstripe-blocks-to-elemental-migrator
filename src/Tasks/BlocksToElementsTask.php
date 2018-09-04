@@ -43,9 +43,14 @@ class BlocksToElementsTask extends BuildTask
     protected $description = 'A task for migrating data from SilverStripe Blocks to SilverStripe Elemental';
 
     /**
-     * @var string
+     * @var string /dev/tasks/migration-block-task
      */
-    private static $segment = 'MigrateBlocksTask';
+    private static $segment = 'migration-block-task';
+
+    /**
+     * @var bool Should the ClassName Update Task run first?
+     */
+    private static $class_name_migration = false;
 
     /**
      * @var
@@ -62,9 +67,11 @@ class BlocksToElementsTask extends BuildTask
      */
     public function run($request)
     {
-        /*$mappings = $this->getBlockClassMapping();
-        DatabaseClassNameUpdateTask::singleton()
-            ->run(Controller::curr()->getRequest(), $mappings); //*/
+        if ($this->config()->get('class_name_migration')) {
+            $mappings = $this->getBlockClassMapping();
+            DatabaseClassNameUpdateTask::singleton()
+                ->run(Controller::curr()->getRequest(), $mappings); //*/
+        }
 
         $migrationMapping = $this->config()->get('migration_mapping');
 
