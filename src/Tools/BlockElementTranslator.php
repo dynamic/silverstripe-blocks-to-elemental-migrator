@@ -35,7 +35,7 @@ class BlockElementTranslator
      * @param array $relations
      * @throws \SilverStripe\ORM\ValidationException
      */
-    public static function translate_block(Block $block, $elementType, $relations)
+    public static function translate_block($block, $elementType, $relations)
     {
         if ($block->exists()) {
             $element = $block->newClassInstance($elementType);
@@ -147,6 +147,8 @@ class BlockElementTranslator
         $source = $sourceObject->getManyManyComponents($blockRelation);
         $dest = $destinationObject->getManyManyComponents($elementRelation);
 
+        $destClass = $dest->dataClass();
+
         if ($source instanceof ManyManyList) {
             $extraFieldNames = $source->getExtraFields();
         } else {
@@ -159,7 +161,21 @@ class BlockElementTranslator
             foreach ($extraFieldNames as $fieldName => $fieldType) {
                 $extraFields[$fieldName] = $item->getField($fieldName);
             }
-            $dest->add($item, $extraFields);
+
+            if ($item->ClassName != $destClass) {
+                $clonedItem = $item->newClassInstance($destClass);
+
+                $clonedItem->write();
+
+                if ($clonedItem->hasExtension(Versioned::class)) {
+                    $clonedItem->writeToStage(Versioned::DRAFT);
+                    $clonedItem->publishRecursive();
+                }
+
+                $dest->add($clonedItem, $extraFields);
+            } else {
+                $dest->add($item, $extraFields);
+            }
         }
     }
 
