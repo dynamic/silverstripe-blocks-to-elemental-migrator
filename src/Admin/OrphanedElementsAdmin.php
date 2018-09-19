@@ -4,6 +4,7 @@ namespace Dynamic\BlockMigration\Admin;
 
 use DNADesign\Elemental\Models\BaseElement;
 use SilverStripe\Admin\ModelAdmin;
+use SilverStripe\Dev\Debug;
 
 /**
  * Class OrphanedElementsAdmin
@@ -37,14 +38,8 @@ class OrphanedElementsAdmin extends ModelAdmin
 
         $class = $list->dataClass();
 
-        $list2 = $list->filterByCallback(function (BaseElement $elememt) {
-            return $elememt->ParentID == 0;
-        });
+        $list2 = $list->exclude('ParentID:GreaterThan', 0);
 
-        if($list2->count()){
-            $list = $class::get()->filter('ID', $list->column('ID'));
-        }
-
-        return $list;
+        return $list2;
     }
 }

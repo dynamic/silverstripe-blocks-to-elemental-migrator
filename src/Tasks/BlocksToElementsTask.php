@@ -8,7 +8,6 @@ use Dynamic\BlockMigration\Tools\DataManipulator;
 use Dynamic\BlockMigration\Tools\ElementalAreaGenerator;
 use Dynamic\BlockMigration\Tools\Message;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
-use Dynamic\ClassNameUpdate\BuildTasks\DatabaseClassNameUpdateTask;
 use Dynamic\Elements\Accordion\Elements\ElementAccordion;
 use SheaDawson\Blocks\Model\Block;
 use SilverStripe\CMS\Model\SiteTree;
@@ -67,12 +66,6 @@ class BlocksToElementsTask extends BuildTask
      */
     public function run($request)
     {
-        if ($this->config()->get('class_name_migration')) {
-            $mappings = $this->getBlockClassMapping();
-            DatabaseClassNameUpdateTask::singleton()
-                ->run(Controller::curr()->getRequest(), $mappings); //*/
-        }
-
         $migrationMapping = $this->config()->get('migration_mapping');
 
         foreach ($migrationMapping as $block => $mapping) {
@@ -88,10 +81,10 @@ class BlocksToElementsTask extends BuildTask
             }
         }
 
-        foreach ($migrationMapping as $block => $mapping) {
-            Message::terminal("Migrating {$block} to {$mapping['Element']}");
+        foreach ($migrationMapping as $currentClass => $mapping) {
+            Message::terminal("Migrating {$currentClass} to {$mapping['NewObject']}");
             $relations = isset($mapping['Relations']) ? $mapping['Relations'] : [];
-            $this->processBlockRecords($block::get(), $mapping['Element'], $relations);
+            $this->processBlockRecords($currentClass::get(), $mapping['NewObject'], $relations);
         } //*/
     }
 

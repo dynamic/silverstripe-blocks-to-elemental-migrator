@@ -1,3 +1,108 @@
 ---
 Name: dynamic-blocks-to-elemental-config
 ---
+SilverStripe\ORM\DatabaseAdmin:
+  classname_value_remapping:
+    ##Blocks
+    AccordionBlock: Dynamic\DynamicBlocks\Block\AccordionBlock
+    AccordionPanel: Dynamic\DynamicBlocks\Model\AccordionPanel
+    CallToActionBlock: Dynamic\DynamicBlocks\Block\CallToActionBlock
+    EmailSignupBlock: Dynamic\DynamicBlocks\Block\EmailSignupBlock
+    ImageBlock: Dynamic\DynamicBlocks\Block\ImageBlock
+    PhotoGalleryBlock: Dynamic\DynamicBlocks\Block\PhotoGalleryBlock
+    PhotoGalleryBlockImage: Dynamic\DynamicBlocks\Model\PhotoGalleryBlockImage
+    PromoBlock: Dynamic\DynamicBlocks\Block\PromoBlock
+    ContentBlock: SheaDawson\Blocks\Model\ContentBlock
+    PromoObject: Dynamic\DynamicBlocks\Model\PromoObject
+    RecentBlogPostsBlock: Dynamic\DynamicBlocks\Block\RecentBlogPostsBlock
+    RelatedArticlesBlock: Dynamic\Jasna\Blocks\RelatedArticlesBlock
+    UpcomingEventsBlock: Dynamic\Jasna\Blocks\UpcomingEventsBlock
+    VideoBlock: Dynamic\Jasna\Blocks\VideoBlock
+    ##Pages
+    AnnualGeneralMeetingPage: Dynamic\Jasna\Pages\AnnualGeneralMeetingPage
+    EventsLanding: Dynamic\Jasna\Pages\EventsLanding
+    HomePage: Dynamic\Jasna\Pages\HomePage
+    LandingPage: Dynamic\Jasna\Pages\LandingPage
+    Publication: Dynamic\Jasna\Pages\Publication
+    PublicationArticle: Dynamic\Jasna\Pages\PublicationArticle
+    PublicationCategory: Dynamic\Jasna\Pages\PublicationCategory
+    PublicationLanding: Dynamic\Jasna\Pages\PublicationLanding
+    RegionalGroupPage: Dynamic\Jasna\Pages\RegionalGroupPage
+    StaffPage: Dynamic\Jasna\Pages\StaffPage
+    StandardContent: Dynamic\Jasna\Pages\StandardContent
+    WorkPage: Dynamic\Jasna\Pages\WorkPage
+    ##Models
+    AdditionalMeetingDate: Dynamic\Jasna\Model\AdditionalMeetingDate
+    AnnualGeneralMeeting: Dynamic\Jasna\Model\AnnualGeneralMeeting
+    EventCoordinator: Dynamic\Jasna\Model\EventCoordinator
+    HomeSection: Dynamic\Jasna\Model\HomeSection
+    PersonObject: Dynamic\Jasna\Model\PersonObject
+    PublicationAuthor: Dynamic\Jasna\Model\PublicationAuthor
+    PublicationSection: Dynamic\Jasna\Model\PublicationSection
+    PublicationTopic: Dynamic\Jasna\Model\PublicationTopic
+    PublicationWork: Dynamic\Jasna\Model\PublicationWork
+    RegionalGroup: Dynamic\Jasna\Model\RegionalGroup
+    RegionalGroupContact: Dynamic\Jasna\Model\RegionalGroupContact
+    StaffGroup: Dynamic\Jasna\Model\StaffGroup
+    StaffMember: Dynamic\Jasna\Model\StaffMember
+    WorkQuote: Dynamic\Jasna\Model\WorkQuote
+    YouTubeVideo: Dynamic\Jasna\Model\YouTubeVideo
+    ContentObject: Dynamic\CoreTools\Model\ContentObject
+    HeaderImage: Dynamic\CoreTools\Model\HeaderImage
+    ##FlexSlider
+    SlideImage: Dynamic\FlexSlider\Model\SlideImage
+    ##Comments
+    Comment: SilverStripe\Comments\Model\Comment
+
+Dynamic\BlockMigration\Tasks\ClassNameUpdateTask:
+  mappings:
+    ##Blocks
+    AccordionBlock: Dynamic\DynamicBlocks\Block\AccordionBlock
+    AccordionPanel: Dynamic\DynamicBlocks\Model\AccordionPanel
+    CallToActionBlock: Dynamic\DynamicBlocks\Block\CallToActionBlock
+    EmailSignupBlock: Dynamic\DynamicBlocks\Block\EmailSignupBlock
+    ImageBlock: Dynamic\DynamicBlocks\Block\ImageBlock
+    PhotoGalleryBlock: Dynamic\DynamicBlocks\Block\PhotoGalleryBlock
+    PhotoGalleryBlockImage: Dynamic\DynamicBlocks\Model\PhotoGalleryBlockImage
+    PromoBlock: Dynamic\DynamicBlocks\Block\PromoBlock
+    ContentBlock: SheaDawson\Blocks\Model\ContentBlock
+    PromoObject: Dynamic\DynamicBlocks\Model\PromoObject
+    RecentBlogPostsBlock: Dynamic\DynamicBlocks\Block\RecentBlogPostsBlock
+    RelatedArticlesBlock: Dynamic\Jasna\Blocks\RelatedArticlesBlock
+    UpcomingEventsBlock: Dynamic\Jasna\Blocks\UpcomingEventsBlock
+    VideoBlock: Dynamic\Jasna\Blocks\VideoBlock
+    ##Pages
+    AnnualGeneralMeetingPage: Dynamic\Jasna\Pages\AnnualGeneralMeetingPage
+    EventsLanding: Dynamic\Jasna\Pages\EventsLanding
+    HomePage: Dynamic\Jasna\Pages\HomePage
+    LandingPage: Dynamic\Jasna\Pages\LandingPage
+    Publication: Dynamic\Jasna\Pages\Publication
+    PublicationArticle: Dynamic\Jasna\Pages\PublicationArticle
+    PublicationCategory: Dynamic\Jasna\Pages\PublicationCategory
+    PublicationLanding: Dynamic\Jasna\Pages\PublicationLanding
+    RegionalGroupPage: Dynamic\Jasna\Pages\RegionalGroupPage
+    StaffPage: Dynamic\Jasna\Pages\StaffPage
+    StandardContent: Dynamic\Jasna\Pages\StandardContent
+    WorkPage: Dynamic\Jasna\Pages\WorkPage
+    ##Models
+    AdditionalMeetingDate: Dynamic\Jasna\Model\AdditionalMeetingDate
+    AnnualGeneralMeeting: Dynamic\Jasna\Model\AnnualGeneralMeeting
+    EventCoordinator: Dynamic\Jasna\Model\EventCoordinator
+    HomeSection: Dynamic\Jasna\Model\HomeSection
+    PersonObject: Dynamic\Jasna\Model\PersonObject
+    PublicationAuthor: Dynamic\Jasna\Model\PublicationAuthor
+    PublicationSection: Dynamic\Jasna\Model\PublicationSection
+    PublicationTopic: Dynamic\Jasna\Model\PublicationTopic
+    PublicationWork: Dynamic\Jasna\Model\PublicationWork
+    RegionalGroup: Dynamic\Jasna\Model\RegionalGroup
+    RegionalGroupContact: Dynamic\Jasna\Model\RegionalGroupContact
+    StaffGroup: Dynamic\Jasna\Model\StaffGroup
+    StaffMember: Dynamic\Jasna\Model\StaffMember
+    WorkQuote: Dynamic\Jasna\Model\WorkQuote
+    YouTubeVideo: Dynamic\Jasna\Model\YouTubeVideo
+    ContentObject: Dynamic\CoreTools\Model\ContentObject
+    HeaderImage: Dynamic\CoreTools\Model\HeaderImage
+    ##FlexSlider
+    SlideImage: Dynamic\FlexSlider\Model\SlideImage
+    ##Comments
+    Comment: SilverStripe\Comments\Model\Comment

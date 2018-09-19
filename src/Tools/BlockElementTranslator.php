@@ -4,6 +4,7 @@ namespace Dynamic\BlockMigration\Tools;
 
 use Dynamic\BlockMigration\Traits\Translator;
 use SheaDawson\Blocks\Model\Block;
+use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
@@ -157,23 +158,35 @@ class BlockElementTranslator
         }
 
         foreach ($source as $item) {
+            $className = $item->ClassName;
+
             // Merge extra fields
             $extraFields = [];
             foreach ($extraFieldNames as $fieldName => $fieldType) {
                 $extraFields[$fieldName] = $item->getField($fieldName);
             }
 
-            if ($item->ClassName != $destClass) {
-                $clonedItem = $item->newClassInstance($destClass);
+            if ($className != $destClass) {
+                if ($className::singleton() instanceof $destClass) {
+                    //most likely polymorphic
+                    $dest->add($item, $extraFields);
+                } else {
+                    Message::terminal("{$item->ClassName} does not exist, attempting to create a new {$destClass}");
+                    $clonedItem = $item->newClassInstance($destClass);
 
-                $clonedItem->write();
+                    if ($item instanceof SiteTree) {
+                        $clonedItem->ParentID = $item->ParentID;
+                    }
 
-                if ($clonedItem->hasExtension(Versioned::class)) {
-                    $clonedItem->writeToStage(Versioned::DRAFT);
-                    $clonedItem->publishRecursive();
+                    $clonedItem->write();
+
+                    if ($clonedItem->hasExtension(Versioned::class)) {
+                        $clonedItem->writeToStage(Versioned::DRAFT);
+                        $clonedItem->publishRecursive();
+                    }
+
+                    $dest->add($clonedItem, $extraFields);
                 }
-
-                $dest->add($clonedItem, $extraFields);
             } else {
                 $dest->add($item, $extraFields);
             }
