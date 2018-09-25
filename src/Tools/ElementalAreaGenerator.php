@@ -4,6 +4,7 @@ namespace Dynamic\BlockMigration\Tools;
 
 use DNADesign\Elemental\Models\ElementalArea;
 use Dynamic\BlockMigration\Tasks\BlocksToElementsTask;
+use SilverStripe\Versioned\Versioned;
 
 /**
  * Class ElementalAreaGenerator
@@ -38,7 +39,15 @@ class ElementalAreaGenerator
             if (!class_exists($page->ClassName)) {
                 $page->ClassName = \Page::class;
             }
+            $isPublished = $page->isPublished();
+
             $page->write();
+            $page->writeToStage(Versioned::DRAFT);
+
+            if ($isPublished) {
+                $page->publishRecursive();
+            }
+
             $page->$areaID > 0 ? Message::terminal("Area successfully related to page.") : Message::terminal("Area unsuccessfully related to page.");
         } else {
             Message::terminal("An area already exists for that page.");

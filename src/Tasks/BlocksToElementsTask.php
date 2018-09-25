@@ -23,6 +23,7 @@ use SilverStripe\Dev\Debug;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\ManyManyList;
 use SilverStripe\ORM\Queries\SQLSelect;
+use SilverStripe\Versioned\Versioned;
 
 /**
  * Class BlocksToElementsTask
@@ -206,6 +207,14 @@ class BlocksToElementsTask extends BuildTask
                     $element->ParentID = $area->ID;
                     $element->LegacyID = $record->ID;
                     $element->write();//*/
+
+                    if ($record->hasMethod('isPublished')) {
+                        $element->writeToStage(Versioned::DRAFT);
+
+                        if ($record->isPublished()) {
+                            $element->publishRecursive();
+                        }
+                    }
                 } else {
                     Message::terminal('dang 2');
                     return;
