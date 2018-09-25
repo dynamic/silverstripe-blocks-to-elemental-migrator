@@ -53,6 +53,8 @@ SilverStripe\ORM\DatabaseAdmin:
     SlideImage: Dynamic\FlexSlider\Model\SlideImage
     ##Comments
     Comment: SilverStripe\Comments\Model\Comment
+    ##Google Site Map
+    GoogleSiteSearchPage: Page
 
 Dynamic\BlockMigration\Tasks\ClassNameUpdateTask:
   mappings:

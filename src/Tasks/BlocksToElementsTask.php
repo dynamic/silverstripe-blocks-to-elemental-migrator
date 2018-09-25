@@ -9,6 +9,7 @@ use Dynamic\BlockMigration\Tools\ElementalAreaGenerator;
 use Dynamic\BlockMigration\Tools\Message;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
 use Dynamic\Elements\Accordion\Elements\ElementAccordion;
+use SheaDawson\Blocks\BlockManager;
 use SheaDawson\Blocks\Model\Block;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
@@ -19,6 +20,7 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\Dev\Debug;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\ManyManyList;
 use SilverStripe\ORM\Queries\SQLSelect;
 
 /**
@@ -81,11 +83,44 @@ class BlocksToElementsTask extends BuildTask
             }
         }
 
-        foreach ($migrationMapping as $currentClass => $mapping) {
-            Message::terminal("Migrating {$currentClass} to {$mapping['NewObject']}");
-            $relations = isset($mapping['Relations']) ? $mapping['Relations'] : [];
-            $this->processBlockRecords($currentClass::get(), $mapping['NewObject'], $relations);
-        } //*/
+        /**
+         * BlockManager used to get legacy block areas of a particular class.
+         */
+        $manager = BlockManager::singleton();
+
+        /**
+         * array used to track what we know about classes and their areas.
+         */
+        $mappedAreas = [];
+
+        /**
+         * @param $page a page to process related blocks to elements
+         */
+        $processPage = function ($page) use (&$manager, &$mappedAreas, &$migrationMapping) {
+            //if (!class_exists($page->ClassName)) continue;
+            $class = $page->ClassName;
+
+            if ($class != 'GoogleSiteSearchPage') {
+                $properPage = $class::get()->byID($page->ID);
+
+                if (!isset($mappedAreas[$properPage->ClassName])) {
+                    $mappedAreas[$properPage->ClassName] = $manager->getAreasForPageType($properPage->ClassName);
+                }
+
+                foreach ($mappedAreas[$properPage->ClassName] as $area => $title) {
+                    $this->processBlockRecords($properPage, $area, $page->getBlockList($area), $migrationMapping);
+                }//*/
+            }
+        };
+
+        $pages = SiteTree::get()->sort('ID');
+
+        foreach ($pages as $page) {
+            $processPage($page);
+        }
+
+        //var_dump($mappedAreas);
+        die('fin');
     }
 
     /**
@@ -138,25 +173,34 @@ class BlocksToElementsTask extends BuildTask
     }
 
     /**
-     * @param $records Legacy Block Records
-     * @param $elementType
+     * @param $page The page owning the existing blocks and the new elements
+     * @param $area The name of the ElementalArea relation (i.e. ElementalArea, Sidebar)
+     * @param $records The legacy block records to migrate to elements
+     * @param $mapping The block to element mapping array
+     * @throws \SilverStripe\ORM\ValidationException
      */
-    protected function processBlockRecords($records, $elementType, $relations)
+    protected function processBlockRecords($page, $area, $records, $mapping)
     {
-        foreach ($records as $record) {
-            if ($record->Pages()->exists()) {
-                foreach ($this->yieldBlockPages($record) as $page) {
-                    if ($page->hasMethod('getElementalRelations')) {
-                        $area = ElementalAreaGenerator::find_or_make_elemental_area($page);
-                        $element = BlockElementTranslator::translate_block($record, $elementType, $relations);
+        $area = ElementalAreaGenerator::find_or_make_elemental_area($page, $area);
 
-                        $element->ParentID = $area->ID;
-                        $element->LegacyID = $record->ID;
-                        $element->write();
-                    }
+        foreach ($records as $record) {
+            if (isset($mapping[$record->ClassName])) {
+                if (!isset($mapping[$record->ClassName]) || !isset($mapping[$record->ClassName]['NewObject'])) {
+                    Message::terminal('dang');
+                    return;
                 }
-            } else {
-                $element = BlockElementTranslator::translate_block($record, $elementType, $relations);
+
+                if ($page->hasMethod('getElementalRelations')) {
+                    $relations = (isset($mapping[$record->ClassName]['Relations'])) ? $mapping[$record->ClassName]['Relations'] : false;
+                    $element = BlockElementTranslator::translate_block($record, $mapping[$record->ClassName]['NewObject'], $relations);
+
+                    $element->ParentID = $area->ID;
+                    $element->LegacyID = $record->ID;
+                    $element->write();//*/
+                } else {
+                    Message::terminal('dang 2');
+                    return;
+                }
             }
         }
     }

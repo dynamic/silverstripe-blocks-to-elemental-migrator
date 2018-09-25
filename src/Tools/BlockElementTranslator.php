@@ -8,6 +8,7 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\Debug;
 use SilverStripe\Versioned\Versioned;
 
@@ -39,9 +40,24 @@ class BlockElementTranslator
     public static function translate_block($block, $elementType, $relations)
     {
         if ($block->exists()) {
-            $element = $block->newClassInstance($elementType);
+            try{
+                $originalClass = $block->ClassName;
 
-            self::singleton()->extend('updateNewElementInstance', $element);
+                /** @var DataObject $newInstance */
+                $element = Injector::inst()->create($elementType, $block->toMap(), false);
+
+                // Modify ClassName
+                if ($elementType != $originalClass) {
+                    $element->setClassName($elementType);
+                    $element->populateDefaults();
+                    $element->forceChange();
+                }
+            }catch(\Exception $e){
+                Debug::show($block);
+                Debug::show($elementType);
+                var_dump($e);
+                die;
+            }
 
             $element->write();
 
@@ -54,7 +70,7 @@ class BlockElementTranslator
             }
 
             if (!empty($relations)) {
-                static::duplicateRelations($block, $element, $relations);
+                //static::duplicateRelations($block, $element, $relations);
             }
 
             return $element;
@@ -71,6 +87,7 @@ class BlockElementTranslator
      */
     protected static function duplicateRelations($sourceObject, $destinationObject, $relations)
     {
+        if(!is_array($relations)) return;
         // Get list of duplicable relation types
         $manyMany = $sourceObject->manyMany();
         $hasMany = $sourceObject->hasMany();
