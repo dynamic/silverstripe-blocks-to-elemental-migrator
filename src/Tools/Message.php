@@ -3,6 +3,7 @@
 namespace Dynamic\BlockMigration\Tools;
 
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Injector\Injectable;
 
 /**
  * Class Message
@@ -11,6 +12,7 @@ use SilverStripe\Core\Config\Configurable;
 class Message
 {
     use Configurable;
+    use Injectable;
 
     /**
      * @var bool
