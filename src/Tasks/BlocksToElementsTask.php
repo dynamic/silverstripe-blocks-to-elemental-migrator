@@ -116,13 +116,10 @@ class BlocksToElementsTask extends BuildTask
             }
         };
 
-        $pages = SiteTree::get()->sort('ID');
-
         foreach ($this->yieldPages() as $page) {
             $processPage($page);
         }
 
-        //var_dump($mappedAreas);
         Message::terminal("Fin.");
     }
 
