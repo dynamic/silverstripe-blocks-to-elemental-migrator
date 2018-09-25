@@ -70,7 +70,7 @@ class BlockElementTranslator
             }
 
             if (!empty($relations)) {
-                //static::duplicateRelations($block, $element, $relations);
+                static::duplicateRelations($block, $element, $relations);
             }
 
             return $element;

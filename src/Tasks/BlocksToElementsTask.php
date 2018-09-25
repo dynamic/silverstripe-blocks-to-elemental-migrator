@@ -9,6 +9,7 @@ use Dynamic\BlockMigration\Tools\ElementalAreaGenerator;
 use Dynamic\BlockMigration\Tools\Message;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
 use Dynamic\Elements\Accordion\Elements\ElementAccordion;
+use Dynamic\Jasna\Pages\HomePage;
 use SheaDawson\Blocks\BlockManager;
 use SheaDawson\Blocks\Model\Block;
 use SilverStripe\CMS\Model\SiteTree;
@@ -100,6 +101,8 @@ class BlocksToElementsTask extends BuildTask
             //if (!class_exists($page->ClassName)) continue;
             $class = $page->ClassName;
 
+            if ($page->getObsoleteClassName()) $page->ClassName = \Page::class;
+
             if ($class != 'GoogleSiteSearchPage') {
                 $properPage = $class::get()->byID($page->ID);
 
@@ -115,12 +118,19 @@ class BlocksToElementsTask extends BuildTask
 
         $pages = SiteTree::get()->sort('ID');
 
-        foreach ($pages as $page) {
+        foreach ($this->yieldPages() as $page) {
             $processPage($page);
         }
 
         //var_dump($mappedAreas);
-        die('fin');
+        Message::terminal("Fin.");
+    }
+
+    protected function yieldPages()
+    {
+        foreach (SiteTree::get()->sort('ID') as $page) {
+            yield $page;
+        }
     }
 
     /**
@@ -184,6 +194,8 @@ class BlocksToElementsTask extends BuildTask
         $area = ElementalAreaGenerator::find_or_make_elemental_area($page, $area);
 
         foreach ($records as $record) {
+            Message::terminal("Migrating {$record->ClassName} - {$record->ID} for page {$page->ClassName} - {$page->ID}.");
+
             if (isset($mapping[$record->ClassName])) {
                 if (!isset($mapping[$record->ClassName]) || !isset($mapping[$record->ClassName]['NewObject'])) {
                     Message::terminal('dang');
@@ -202,6 +214,8 @@ class BlocksToElementsTask extends BuildTask
                     return;
                 }
             }
+
+            Message::terminal("End migrating {$record->ClassName}.\n\n");
         }
     }
 
