@@ -13,47 +13,47 @@ use SilverStripe\Versioned\Versioned;
 class ElementalAreaGenerator
 {
     /**
-     * @param $page
+     * @param $object
      * @return mixed
      */
-    public static function find_or_make_elemental_area($page, $area)
+    public static function find_or_make_elemental_area($object, $area)
     {
         $areaMappging = BlocksToElementsTask::singleton()->config()->get('area_assignments');
 
         if (isset($areaMappging[$area])) {
             $areaName = $areaMappging[$area];
         } else {
-            $areaName = static::get_default_area_by_page($page);
+            $areaName = static::get_default_area_by_page($object);
         }
 
-        Message::terminal("Attempting to resolve {$area} area for {$page->ClassName} - {$page->ID} with {$areaName}");
+        Message::terminal("Attempting to resolve {$area} area for {$object->ClassName} - {$object->ID} with {$areaName}");
 
         $areaID = $areaName . 'ID';
-        if (!$page->$areaID) {
+        if (!$object->$areaID) {
             Message::terminal("No area currently set, attempting to create");
             $elementalArea = ElementalArea::create();
-            $elementalArea->OwnerClassName = $page->ClassName;
+            $elementalArea->OwnerClassName = $object->ClassName;
             $elementalArea->write();
-            $elementalArea->exists() ? Message::terminal("{$elementalArea->ClassName} created for {$page->ClassName} - {$page->ID}") : Message::terminal("Area could not be created.");
-            $page->$areaID = $elementalArea->ID;
-            if (!class_exists($page->ClassName)) {
-                $page->ClassName = \Page::class;
+            $elementalArea->exists() ? Message::terminal("{$elementalArea->ClassName} created for {$object->ClassName} - {$object->ID}") : Message::terminal("Area could not be created.");
+            $object->$areaID = $elementalArea->ID;
+            if (!class_exists($object->ClassName)) {
+                $object->ClassName = \Page::class;
             }
-            $isPublished = $page->isPublished();
+            $isPublished = $object->isPublished();
 
-            $page->write();
-            $page->writeToStage(Versioned::DRAFT);
+            $object->write();
+            $object->writeToStage(Versioned::DRAFT);
 
             if ($isPublished) {
-                $page->publishRecursive();
+                $object->publishRecursive();
             }
 
-            $page->$areaID > 0 ? Message::terminal("Area successfully related to page.") : Message::terminal("Area unsuccessfully related to page.");
+            $object->$areaID > 0 ? Message::terminal("Area successfully related to page.") : Message::terminal("Area unsuccessfully related to page.");
         } else {
             Message::terminal("An area already exists for that page.");
         }
 
-        $resultingArea = ElementalArea::get()->filter('ID', $page->$areaID)->first();
+        $resultingArea = ElementalArea::get()->filter('ID', $object->$areaID)->first();
 
         Message::terminal("Resolved with area {$resultingArea->ClassName} - {$resultingArea->ID}.\n\n");
 

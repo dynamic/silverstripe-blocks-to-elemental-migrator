@@ -37,14 +37,20 @@ class BlockElementTranslator
      * @param array $relations
      * @throws \SilverStripe\ORM\ValidationException
      */
-    public static function translate_block($block, $elementType, $relations)
+    public static function translate_block($block, $elementType, $relations, $areaID = 0)
     {
         if ($block->exists()) {
-            try{
+            try {
                 $originalClass = $block->ClassName;
 
                 /** @var DataObject $newInstance */
                 $element = Injector::inst()->create($elementType, $block->toMap(), false);
+
+                if ((int)$areaID === $areaID && $areaID > 0) $element->ParentID = $areaID;
+                if ($element->ID && $elementType::get()->byID($element->ID)) {
+                    $element->ID = 0;
+                    $element->LegacyID = $block->ID;
+                }
 
                 // Modify ClassName
                 if ($elementType != $originalClass) {
@@ -52,7 +58,7 @@ class BlockElementTranslator
                     $element->populateDefaults();
                     $element->forceChange();
                 }
-            }catch(\Exception $e){
+            } catch (\Exception $e) {
                 Debug::show($block);
                 Debug::show($elementType);
                 var_dump($e);
@@ -87,7 +93,7 @@ class BlockElementTranslator
      */
     protected static function duplicateRelations($sourceObject, $destinationObject, $relations)
     {
-        if(!is_array($relations)) return;
+        if (!is_array($relations)) return;
         // Get list of duplicable relation types
         $manyMany = $sourceObject->manyMany();
         $hasMany = $sourceObject->hasMany();

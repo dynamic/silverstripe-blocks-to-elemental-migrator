@@ -8,10 +8,12 @@ use Dynamic\BlockMigration\Tools\DataManipulator;
 use Dynamic\BlockMigration\Tools\ElementalAreaGenerator;
 use Dynamic\BlockMigration\Tools\Message;
 use Dynamic\BlockMigration\Traits\BlockMigrationConfigurationTrait;
+use Dynamic\ElementalSets\Model\ElementalSet;
 use Dynamic\Elements\Accordion\Elements\ElementAccordion;
 use Dynamic\Jasna\Pages\HomePage;
 use SheaDawson\Blocks\BlockManager;
 use SheaDawson\Blocks\Model\Block;
+use SheaDawson\Blocks\Model\BlockSet;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
@@ -70,6 +72,7 @@ class BlocksToElementsTask extends BuildTask
      */
     public function run($request)
     {
+        $start = microtime(true);
         $migrationMapping = $this->config()->get('migration_mapping');
 
         foreach ($migrationMapping as $block => $mapping) {
@@ -89,6 +92,82 @@ class BlocksToElementsTask extends BuildTask
          * BlockManager used to get legacy block areas of a particular class.
          */
         $manager = BlockManager::singleton();
+
+        /**
+         * @param $blockSet
+         */
+        $processSet = function ($blockSet) use (&$manager, &$migrationMapping) {
+
+            /**
+             * translate the BlockSet to an ElementalSet
+             */
+            $elementalSet = $blockSet->newClassInstance(ElementalSet::class);
+            $elementalSet->write();
+
+            /**
+             * get the ManyManyList relation PageParents of the BlockSet and ElementalSet
+             */
+            $blockPageParents = $blockSet->getManyManyComponents('PageParents');
+            $elementPageParents = $elementalSet->getManyManyComponents('PageParents');
+
+            /**
+             * get the ManyManyList relation of Blocks
+             */
+            $blocks = $blockSet->getManyManyComponents('Blocks');
+
+            /**
+             * find or make related ElementalArea
+             */
+            $elementalArea = ElementalAreaGenerator::find_or_make_elemental_area($elementalSet, null);
+
+            /**
+             * get many_many_extraFields field names of the Blocks relation. this will be used to get the values for migration.
+             */
+            if ($blocks instanceof ManyManyList) {
+                $extraFieldNames = $blocks->getExtraFields();
+            } else {
+                $extraFieldNames = [];
+            }
+
+            /**
+             * migrate parent pages (all child pages will show this set)
+             */
+            foreach ($blockPageParents as $blockPageParent) {
+                $elementPageParents->add($blockPageParent);
+            }
+
+            /**
+             * migrate blocks to elements
+             */
+            foreach ($blocks as $block) {
+                Message::terminal("Migrating {$block->ClassName} - {$block->ID} for page {$elementalSet->ClassName} - {$elementalSet->ID}.");
+
+                /**
+                 * if we have the mapping data for this block, migrate it to the corresponding Element
+                 */
+                if (isset($migrationMapping[$block->ClassName])) {
+                    /**
+                     * get the relations to migrate
+                     */
+                    $relations = (isset($migrationMapping[$block->ClassName]['Relations'])) ? $migrationMapping[$block->ClassName]['Relations'] : false;
+
+                    /**
+                     * get the resulting Element from the block and mapping data
+                     */
+                    $element = BlockElementTranslator::translate_block($block, $migrationMapping[$block->ClassName]['NewObject'], $relations, $elementalArea->ID);
+                }
+
+                Message::terminal("End migrating {$block->ClassName}.\n\n");
+            }
+
+            $elementalSet->write();
+            $elementalSet->writeToStage(Versioned::DRAFT);
+            $elementalSet->publishRecursive();
+        };
+
+        foreach ($this->yieldBlockSets() as $blockSet) {
+            $processSet($blockSet);
+        }
 
         /**
          * array used to track what we know about classes and their areas.
@@ -120,14 +199,30 @@ class BlocksToElementsTask extends BuildTask
         foreach ($this->yieldPages() as $page) {
             $processPage($page);
         }
+        $minutes = (microtime(true) - $start) / 60;
 
-        Message::terminal("Fin.");
+        Message::terminal("Fin. {$minutes} secs.");
     }
 
+    /**
+     * @return \Generator
+     */
+    protected function yieldBlockSets()
+    {
+        foreach (BlockSet::get() as $set) {
+            yield $set;
+        }
+    }
+
+    /**
+     * @return \Generator
+     */
     protected function yieldPages()
     {
         foreach (SiteTree::get()->sort('ID') as $page) {
-            yield $page;
+            if ($page->ClassName == HomePage::class) {
+                yield $page;
+            }
         }
     }
 
