@@ -220,9 +220,7 @@ class BlocksToElementsTask extends BuildTask
     protected function yieldPages()
     {
         foreach (SiteTree::get()->sort('ID') as $page) {
-            if ($page->ClassName == HomePage::class) {
-                yield $page;
-            }
+            yield $page;
         }
     }
 
