@@ -229,24 +229,19 @@ class BlockElementTranslator
         $source = $sourceObject->getComponents($blockRelation);
         $dest = $destinationObject->getComponents($elementRelation);
 
-        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+        $newInstance = $dest->dataClass();
 
         /** @var DataObject $item */
         foreach ($source as $item) {
             // Don't write on duplicate; Wait until ParentID is available later.
             // writeRelations() will eventually write these records when converting
             // from UnsavedRelationList
-            if (!$newInstance) {
-                $clonedItem = $item->duplicate(false);
-            } else {
-                $clonedItem = $item->newClassInstance($newInstance);
-            }
+            $clonedItem = $item->newClassInstance($newInstance);
+            $clonedItem->ID = 0;
 
             /*if (static::singleton()->config()->get('explicit_data_transfer')) {
                 $clonedItem = static::set_explicit($item, $clonedItem);
             }*/
-
-            $clonedItem->write();
 
             if ($clonedItem->hasExtension(Versioned::class)) {
                 $clonedItem->writeToStage(Versioned::DRAFT);
@@ -269,16 +264,24 @@ class BlockElementTranslator
     {
         // Check if original object exists
         $item = $sourceObject->getComponent($blockRelation);
+        $possible = $destinationObject->config()->get('has_one');
+
+        $newClass = array_key_exists($elementRelation, $possible) ? $possible[$elementRelation] : null;
+
         if (!$item->isInDB()) {
             return;
         }
 
-        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+        if ($newClass === null) {
+            return;
+        }
 
-        if (!$newInstance) {
-            $clonedItem = $item->duplicate(false);
-        } else {
-            $clonedItem = $item->newClassInstance($elementRelation);
+        $clonedItem = $item->newClassInstance($newClass);
+        $clonedItem->ID = 0;
+
+        if ($clonedItem->hasExtension(Versioned::class)) {
+            $clonedItem->writeToStage(Versioned::DRAFT);
+            $clonedItem->publishRecursive();
         }
 
         $destinationObject->setComponent($elementRelation, $clonedItem);
@@ -296,16 +299,21 @@ class BlockElementTranslator
     {
         // Check if original object exists
         $item = $sourceObject->getComponent($blockRelation);
+        $possible = $destinationObject->config()->get('belongs_to');
+
+        $newClass = array_key_exists($elementRelation, $possible) ? $possible[$elementRelation] : null;
+
         if (!$item->isInDB()) {
             return;
         }
 
-        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+        if ($newClass === null) return;
 
-        if (!$newInstance) {
-            $clonedItem = $item->duplicate(false);
-        } else {
-            $clonedItem = $item->newClassInstance($elementRelation);
+        $clonedItem = $item->newClassInstance($newClass);
+
+        if ($clonedItem->hasExtension(Versioned::class)) {
+            $clonedItem->writeToStage(Versioned::DRAFT);
+            $clonedItem->publishRecursive();
         }
 
         $destinationObject->setComponent($elementRelation, $clonedItem);

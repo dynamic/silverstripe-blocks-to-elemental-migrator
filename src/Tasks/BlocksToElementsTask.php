@@ -167,7 +167,7 @@ class BlocksToElementsTask extends BuildTask
 
         foreach ($this->yieldBlockSets() as $blockSet) {
             $processSet($blockSet);
-        }
+        }//*/
 
         /**
          * array used to track what we know about classes and their areas.
@@ -178,7 +178,6 @@ class BlocksToElementsTask extends BuildTask
          * @param $page a page to process related blocks to elements
          */
         $processPage = function ($page) use (&$manager, &$mappedAreas, &$migrationMapping) {
-            //if (!class_exists($page->ClassName)) continue;
             $class = $page->ClassName;
 
             if ($page->getObsoleteClassName()) $page->ClassName = \Page::class;
@@ -190,9 +189,16 @@ class BlocksToElementsTask extends BuildTask
                     $mappedAreas[$properPage->ClassName] = $manager->getAreasForPageType($properPage->ClassName);
                 }
 
+                $original = $updated = BlockManager::singleton()->config()->get('options');
+                $updated['use_blocksets'] = false;
+
+                Config::modify()->set(BlockManager::class, 'options', $updated);
+
                 foreach ($mappedAreas[$properPage->ClassName] as $area => $title) {
                     $this->processBlockRecords($properPage, $area, $page->getBlockList($area), $migrationMapping);
                 }//*/
+
+                Config::modify()->set(BlockManager::class, 'options', $original);
             }
         };
 
@@ -201,7 +207,7 @@ class BlocksToElementsTask extends BuildTask
         }
         $minutes = (microtime(true) - $start) / 60;
 
-        Message::terminal("Fin. {$minutes} secs.");
+        Message::terminal("Fin. {$minutes} mins.");
     }
 
     /**
@@ -299,7 +305,6 @@ class BlocksToElementsTask extends BuildTask
 
                     $element->ParentID = $area->ID;
                     $element->LegacyID = $record->ID;
-                    $element->write();//*/
 
                     if ($record->hasMethod('isPublished')) {
                         $element->writeToStage(Versioned::DRAFT);
@@ -307,6 +312,8 @@ class BlocksToElementsTask extends BuildTask
                         if ($record->isPublished()) {
                             $element->publishRecursive();
                         }
+                    } else {
+                        $element->write();
                     }
                 } else {
                     Message::terminal('dang 2');
@@ -315,17 +322,6 @@ class BlocksToElementsTask extends BuildTask
             }
 
             Message::terminal("End migrating {$record->ClassName}.\n\n");
-        }
-    }
-
-    /**
-     * @param Block $block
-     * @return \Generator
-     */
-    protected function yieldBlockPages(Block $block)
-    {
-        foreach ($block->Pages() as $page) {
-            yield $page;
         }
     }
 
