@@ -204,7 +204,7 @@ class BlocksToElementsTask extends BuildTask
 
         foreach ($this->yieldPages() as $page) {
             $processPage($page);
-        }
+        }//*/
         $minutes = (microtime(true) - $start) / 60;
 
         Message::terminal("Fin. {$minutes} mins.");

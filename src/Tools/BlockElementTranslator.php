@@ -47,10 +47,8 @@ class BlockElementTranslator
                 $element = Injector::inst()->create($elementType, $block->toMap(), false);
 
                 if ((int)$areaID === $areaID && $areaID > 0) $element->ParentID = $areaID;
-                if ($element->ID && $elementType::get()->byID($element->ID)) {
-                    $element->ID = 0;
-                    $element->LegacyID = $block->ID;
-                }
+                $element->ID = 0;
+                $element->LegacyID = $block->ID;
 
                 // Modify ClassName
                 if ($elementType != $originalClass) {
