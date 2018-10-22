@@ -2,6 +2,7 @@
 
 namespace Dynamic\BlockMigration\Tools;
 
+use InvalidArgumentException;
 use Dynamic\BlockMigration\Traits\Translator;
 use SheaDawson\Blocks\Model\Block;
 use SilverStripe\Core\Config\Configurable;
@@ -42,6 +43,10 @@ class BlockElementTranslator
 
             self::singleton()->extend('updateNewElementInstance', $element);
 
+            if (!empty($relations)) {
+                static::duplicateRelations($block, $element, $relations);
+            }
+
             $element->write();
 
             if ($block->hasMethod('isPublished')) {
@@ -50,10 +55,6 @@ class BlockElementTranslator
                 if ($block->isPublished()) {
                     $element->publishRecursive();
                 }
-            }
-
-            if (!empty($relations)) {
-                static::duplicateRelations($block, $element, $relations);
             }
 
             return $element;
@@ -238,12 +239,7 @@ class BlockElementTranslator
         }
 
         $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation, $elementRelation);
-
-        if (!$newInstance) {
-            $clonedItem = $item->duplicate(false);
-        } else {
-            $clonedItem = $item->newClassInstance($elementRelation);
-        }
+        $clonedItem = (!$newInstance) ? $item: $item->newClassInstance($elementRelation);
 
         $destinationObject->setComponent($elementRelation, $clonedItem);
     }
