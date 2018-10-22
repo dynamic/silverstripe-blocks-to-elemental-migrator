@@ -158,12 +158,13 @@ class BlocksToElementsTask extends BuildTask
                     /**
                      * get the relations to migrate
                      */
-                    $relations = (isset($migrationMapping[$block->ClassName]['Relations'])) ? $migrationMapping[$block->ClassName]['Relations'] : false;
+                    $relations = (isset($migrationMapping[$block->ClassName]['Relations'])) ?: false;
 
                     /**
                      * get the resulting Element from the block and mapping data
                      */
-                    $element = BlockElementTranslator::translate_block($block, $migrationMapping[$block->ClassName]['NewObject'], $relations, $elementalArea->ID);
+                    $element = BlockElementTranslator::translate_block($block,
+                        $migrationMapping[$block->ClassName]['NewObject'], $relations, $elementalArea->ID);
                 }
 
                 Message::terminal("End migrating {$block->ClassName}.\n\n");
@@ -189,7 +190,10 @@ class BlocksToElementsTask extends BuildTask
         $processPage = function ($page) use (&$manager, &$mappedAreas, &$migrationMapping) {
             $class = $page->ClassName;
 
-            if ($page->getObsoleteClassName()) $page->ClassName = \Page::class;
+            if ($page->getObsoleteClassName()) {
+                Message::terminal("Page - {$page->ID} of obsolete class {$page->getObsoleteClassName()}");
+                $page->ClassName = \Page::class;
+            }
 
             $properPage = $class::get()->byID($page->ID);
 
@@ -202,7 +206,7 @@ class BlocksToElementsTask extends BuildTask
 
             Config::modify()->set(BlockManager::class, 'options', $updated);
 
-            foreach ($mappedAreas[$properPage->ClassName] as $area => $title) {
+            foreach ($this->yieldMulti($mappedAreas[$properPage->ClassName]) as $area => $title) {
                 $this->processBlockRecords($properPage, $area, $page->getBlockList($area), $migrationMapping);
             }//*/
 
@@ -294,18 +298,18 @@ class BlocksToElementsTask extends BuildTask
     {
         $area = ElementalAreaGenerator::find_or_make_elemental_area($page, $area);
 
-        foreach ($records as $record) {
+        foreach ($this->yieldSingle($records) as $record) {
             Message::terminal("Migrating {$record->ClassName} - {$record->ID} for page {$page->ClassName} - {$page->ID}.");
 
             if (isset($mapping[$record->ClassName])) {
                 if (!isset($mapping[$record->ClassName]) || !isset($mapping[$record->ClassName]['NewObject'])) {
-                    Message::terminal('dang');
                     return;
                 }
 
                 if ($page->hasMethod('getElementalRelations')) {
                     $relations = (isset($mapping[$record->ClassName]['Relations'])) ? $mapping[$record->ClassName]['Relations'] : false;
-                    $element = BlockElementTranslator::translate_block($record, $mapping[$record->ClassName]['NewObject'], $relations);
+                    $element = BlockElementTranslator::translate_block($record,
+                        $mapping[$record->ClassName]['NewObject'], $relations);
 
                     if ($element instanceof BaseElement && $area instanceof ElementalArea && $record instanceof DataObject) {
                         $element->ParentID = $area->ID;
@@ -313,7 +317,6 @@ class BlocksToElementsTask extends BuildTask
                     } else {
                         Message::terminal("Something is a non-object");
                     }
-
 
                     if ($record->hasMethod('isPublished')) {
                         $element->writeToStage(Versioned::DRAFT);
@@ -325,12 +328,33 @@ class BlocksToElementsTask extends BuildTask
                         $element->write();
                     }
                 } else {
-                    Message::terminal('dang 2');
                     return;
                 }
             }
 
             Message::terminal("End migrating {$record->ClassName}.\n\n");
+        }
+    }
+
+    /**
+     * @param $records
+     * @return \Generator
+     */
+    protected function yieldSingle($records)
+    {
+        foreach ($records as $record) {
+            yield $record;
+        }
+    }
+
+    /**
+     * @param $records
+     * @return \Generator
+     */
+    protected function yieldMulti($records)
+    {
+        foreach ($records as $key => $val) {
+            yield $key => $val;
         }
     }
 

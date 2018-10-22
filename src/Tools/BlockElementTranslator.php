@@ -8,6 +8,7 @@ use SheaDawson\Blocks\Model\Block;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\Debug;
 use SilverStripe\Versioned\Versioned;
 
@@ -39,7 +40,11 @@ class BlockElementTranslator
     public static function translate_block($block, $elementType, $relations)
     {
         if ($block->exists()) {
-            $element = $block->newClassInstance($elementType);
+            $element = Injector::inst()->create($elementType, $block->toMap(), false);
+
+            $element->setClassName($elementType);
+            $element->populateDefaults();
+            $element->forceChange();
 
             self::singleton()->extend('updateNewElementInstance', $element);
 
@@ -82,22 +87,26 @@ class BlockElementTranslator
             switch (true) {
                 case array_key_exists($blockRelation, $manyMany):
                     {
-                        static::duplicateManyManyRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+                        static::duplicateManyManyRelation($sourceObject, $destinationObject, $blockRelation,
+                            $elementRelation);
                         break;
                     }
                 case array_key_exists($blockRelation, $hasMany):
                     {
-                        static::duplicateHasManyRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+                        static::duplicateHasManyRelation($sourceObject, $destinationObject, $blockRelation,
+                            $elementRelation);
                         break;
                     }
                 case array_key_exists($blockRelation, $hasOne):
                     {
-                        static::duplicateHasOneRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+                        static::duplicateHasOneRelation($sourceObject, $destinationObject, $blockRelation,
+                            $elementRelation);
                         break;
                     }
                 case array_key_exists($blockRelation, $belongsTo):
                     {
-                        static::duplicateBelongsToRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+                        static::duplicateBelongsToRelation($sourceObject, $destinationObject, $blockRelation,
+                            $elementRelation);
                         break;
                     }
                 default:
@@ -143,8 +152,12 @@ class BlockElementTranslator
      * @param DataObject $destinationObject
      * @param string $relation
      */
-    protected static function duplicateManyManyRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation)
-    {
+    protected static function duplicateManyManyRelation(
+        $sourceObject,
+        $destinationObject,
+        $blockRelation,
+        $elementRelation
+    ) {
         // Copy all components from source to destination
         $source = $sourceObject->getManyManyComponents($blockRelation);
         $dest = $destinationObject->getManyManyComponents($elementRelation);
@@ -188,13 +201,18 @@ class BlockElementTranslator
      * @param DataObject $destinationObject
      * @param string $relation
      */
-    protected static function duplicateHasManyRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation)
-    {
+    protected static function duplicateHasManyRelation(
+        $sourceObject,
+        $destinationObject,
+        $blockRelation,
+        $elementRelation
+    ) {
         // Copy all components from source to destination
         $source = $sourceObject->getComponents($blockRelation);
         $dest = $destinationObject->getComponents($elementRelation);
 
-        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation,
+            $elementRelation);
 
         /** @var DataObject $item */
         foreach ($source as $item) {
@@ -230,16 +248,21 @@ class BlockElementTranslator
      * @param DataObject $destinationObject
      * @param string $relation
      */
-    protected static function duplicateHasOneRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation)
-    {
+    protected static function duplicateHasOneRelation(
+        $sourceObject,
+        $destinationObject,
+        $blockRelation,
+        $elementRelation
+    ) {
         // Check if original object exists
         $item = $sourceObject->getComponent($blockRelation);
         if (!$item->isInDB()) {
             return;
         }
 
-        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation, $elementRelation);
-        $clonedItem = (!$newInstance) ? $item: $item->newClassInstance($elementRelation);
+        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation,
+            $elementRelation);
+        $clonedItem = (!$newInstance) ? $item : $item->newClassInstance($elementRelation);
 
         $destinationObject->setComponent($elementRelation, $clonedItem);
     }
@@ -252,15 +275,20 @@ class BlockElementTranslator
      * @param DataObject $destinationObject
      * @param string $relation
      */
-    protected static function duplicateBelongsToRelation($sourceObject, $destinationObject, $blockRelation, $elementRelation)
-    {
+    protected static function duplicateBelongsToRelation(
+        $sourceObject,
+        $destinationObject,
+        $blockRelation,
+        $elementRelation
+    ) {
         // Check if original object exists
         $item = $sourceObject->getComponent($blockRelation);
         if (!$item->isInDB()) {
             return;
         }
 
-        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation, $elementRelation);
+        $newInstance = static::get_require_new_instance($sourceObject, $destinationObject, $blockRelation,
+            $elementRelation);
 
         if (!$newInstance) {
             $clonedItem = $item->duplicate(false);
@@ -282,8 +310,12 @@ class BlockElementTranslator
      * @param $elementRelation
      * @return bool|string
      */
-    protected static function get_require_new_instance(&$sourceObject, &$destinationObject, &$blockRelation, &$elementRelation)
-    {
+    protected static function get_require_new_instance(
+        &$sourceObject,
+        &$destinationObject,
+        &$blockRelation,
+        &$elementRelation
+    ) {
         return ($sourceObject->getRelationClass($blockRelation) == $destinationObject->getRelationClass($elementRelation))
             ? false
             : $destinationObject->getRelationClass($elementRelation);
