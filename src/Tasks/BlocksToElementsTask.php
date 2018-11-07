@@ -289,7 +289,7 @@ class BlocksToElementsTask extends BuildTask
 
     /**
      * @param $page The page owning the existing blocks and the new elements
-     * @param $area The name of the ElementalArea relation (i.e. ElementalArea, Sidebar)
+     * @param $area The name of the BlockArea the records belong to
      * @param $records The legacy block records to migrate to elements
      * @param $mapping The block to element mapping array
      * @throws \SilverStripe\ORM\ValidationException
@@ -301,11 +301,7 @@ class BlocksToElementsTask extends BuildTask
         foreach ($this->yieldSingle($records) as $record) {
             Message::terminal("Migrating {$record->ClassName} - {$record->ID} for page {$page->ClassName} - {$page->ID}.");
 
-            if (isset($mapping[$record->ClassName])) {
-                if (!isset($mapping[$record->ClassName]) || !isset($mapping[$record->ClassName]['NewObject'])) {
-                    return;
-                }
-
+            if (isset($mapping[$record->ClassName]) && isset($mapping[$record->ClassName]['NewObject'])) {
                 if ($page->hasMethod('getElementalRelations')) {
                     $relations = (isset($mapping[$record->ClassName]['Relations'])) ? $mapping[$record->ClassName]['Relations'] : false;
                     $element = BlockElementTranslator::translate_block($record,
@@ -328,12 +324,12 @@ class BlocksToElementsTask extends BuildTask
                         $element->write();
                     }
                 } else {
-                    return;
+                    Message::terminal("{$record->ClassName} is not mapped. This class may not exist or needs to be added to the mapping.");
                 }
             }
 
-            Message::terminal("End migrating {$record->ClassName}.\n\n");
-        }
+            Message::terminal("End migrating {$record->ClassName}.\n\n");//*/
+        }//*/
     }
 
     /**
