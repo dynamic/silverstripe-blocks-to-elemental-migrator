@@ -2,6 +2,8 @@
 
 namespace Dynamic\BlockMigration\Tools;
 
+use Dynamic\Elements\Promos\Elements\ElementPromos;
+use Dynamic\Elements\Promos\Model\PromoObject;
 use InvalidArgumentException;
 use Dynamic\BlockMigration\Traits\Translator;
 use SheaDawson\Blocks\Model\Block;
@@ -48,11 +50,11 @@ class BlockElementTranslator
 
             self::singleton()->extend('updateNewElementInstance', $element);
 
+            $element->write();
+
             if (!empty($relations)) {
                 static::duplicateRelations($block, $element, $relations);
             }
-
-            $element->write();
 
             if ($block->hasMethod('isPublished')) {
                 $element->writeToStage(Versioned::DRAFT);
@@ -161,7 +163,6 @@ class BlockElementTranslator
         // Copy all components from source to destination
         $source = $sourceObject->getManyManyComponents($blockRelation);
         $dest = $destinationObject->getManyManyComponents($elementRelation);
-
         $destClass = $dest->dataClass();
 
         if ($source instanceof ManyManyList) {
@@ -169,6 +170,8 @@ class BlockElementTranslator
         } else {
             $extraFieldNames = [];
         }
+
+        Message::terminal("attempting to migrate {$source->count()} records of type {$source->dataClass()} to {$destClass}");
 
         foreach ($source as $item) {
             // Merge extra fields
@@ -178,20 +181,59 @@ class BlockElementTranslator
             }
 
             if ($item->ClassName != $destClass) {
-                $clonedItem = $item->newClassInstance($destClass);
+                $relatedObject = static::find_or_make_object($destClass, $item);
 
-                $clonedItem->write();
-
-                if ($clonedItem->hasExtension(Versioned::class)) {
-                    $clonedItem->writeToStage(Versioned::DRAFT);
-                    $clonedItem->publishRecursive();
+                if ($relatedObject->hasExtension(Versioned::class)) {
+                    $relatedObject->writeToStage(Versioned::DRAFT);
+                    $relatedObject->publishRecursive();
+                } else {
+                    $relatedObject->write();
                 }
 
-                $dest->add($clonedItem, $extraFields);
+                Message::terminal("new {$destClass} created from {$item->ClassName}:{$item->ID}");
+
+                $dest->add($relatedObject, $extraFields);
             } else {
                 $dest->add($item, $extraFields);
             }
         }
+    }
+
+    /**
+     * @param $newClass
+     * @param $legacyObject
+     * @return mixed
+     */
+    protected static function find_or_make_object($newClass, $legacyObject)
+    {
+        if (!$newClass::singleton()->hasField('LegacyID')) {
+            $newObject = static::new_object($newClass, $legacyObject);
+        } elseif (!$newObject = $newClass::get()->filter('LegacyID', $legacyObject->ID)->first()) {
+            $newObject = static::new_object($newClass, $legacyObject);
+        }
+
+        return $newObject;
+    }
+
+    /**
+     * @param $newClass
+     * @param $legacyObject
+     * @return mixed
+     */
+    protected static function new_object($newClass, $legacyObject)
+    {
+        /** @var DataObject $newInstance */
+        $newObject = Injector::inst()->create($newClass, $legacyObject->toMap(), false);
+        if ($newObject->hasField('LegacyID')) {
+            $newObject->LegacyID = $newObject->ID;
+            $newObject->ID = null;
+        }
+
+        $newObject->setClassName($newClass);
+        $newObject->populateDefaults();
+        $newObject->forceChange();
+
+        return $newObject;
     }
 
     /**
