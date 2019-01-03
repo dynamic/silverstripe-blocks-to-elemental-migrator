@@ -177,7 +177,11 @@ class PageProcessor
      */
     protected function getPageBlocksByArea($page, $area)
     {
-        return $page->getBlockList($area);
+        if ($area !== null) {
+            return $page->getBlockList($area);
+        }
+
+        return $page->Blocks()->filter('BlockArea', $area);
     }
 
     /**
@@ -224,8 +228,11 @@ class PageProcessor
                     if ($record->hasMethod('isPublished')) {
                         $element->writeToStage(Versioned::DRAFT);
 
-                        if ($record->isPublished()) {
-                            $element->publishRecursive();
+                        //don't publish if they were in the "None" block area
+                        if (!isset($null)) {
+                            if ($record->isPublished()) {
+                                $element->publishRecursive();
+                            }
                         }
                     } else {
                         $element->write();
