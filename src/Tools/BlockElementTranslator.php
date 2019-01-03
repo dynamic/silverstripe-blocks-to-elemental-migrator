@@ -2,6 +2,8 @@
 
 namespace Dynamic\BlockMigration\Tools;
 
+use Dynamic\Elements\Features\Elements\ElementFeatures;
+use Dynamic\Elements\Features\Model\FeatureObject;
 use Dynamic\Elements\Promos\Elements\ElementPromos;
 use Dynamic\Elements\Promos\Model\PromoObject;
 use InvalidArgumentException;
@@ -46,6 +48,7 @@ class BlockElementTranslator
 
             $element->setClassName($elementType);
             $element->populateDefaults();
+            $element->ID = null;
             $element->forceChange();
 
             self::singleton()->extend('updateNewElementInstance', $element);
@@ -264,18 +267,14 @@ class BlockElementTranslator
             if (!$newInstance) {
                 $clonedItem = $item->duplicate(false);
             } else {
-                $clonedItem = $item->newClassInstance($newInstance);
+                $clonedItem = static::find_or_make_object($newInstance, $item);
             }
-
-            /*if (static::singleton()->config()->get('explicit_data_transfer')) {
-                $clonedItem = static::set_explicit($item, $clonedItem);
-            }*/
-
-            $clonedItem->write();
 
             if ($clonedItem->hasExtension(Versioned::class)) {
                 $clonedItem->writeToStage(Versioned::DRAFT);
                 $clonedItem->publishRecursive();
+            } else {
+                $clonedItem->write();
             }
 
             $dest->add($clonedItem);
