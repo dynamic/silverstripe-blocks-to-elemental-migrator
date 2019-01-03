@@ -151,6 +151,8 @@ class PageProcessor
      */
     public function processPage(SiteTree $page)
     {
+        Message::terminal("Processing page {$page->Title}");
+        
         $original = $updated = BlockManager::singleton()->config()->get('options');
         $updated['use_blocksets'] = false;
         $class = $page->ClassName;
@@ -193,7 +195,7 @@ class PageProcessor
     protected function processBlockRecords($page, $area, $records)
     {
         if ($area == null) {
-            $area = 'ElementalArea';
+            $area = 'AfterContent';
             $null = true;
         }
 
@@ -204,7 +206,7 @@ class PageProcessor
          * var $record Block record
          */
         foreach ($this->yieldSingle($records) as $record) {
-            Message::terminal("Migrating {$record->ClassName} - {$record->ID} for page {$page->ClassName} - {$page->ID}.");
+            Message::terminal("Migrating block type: {$record->ClassName} - {$record->ID}.");
 
             if ($this->isMapped($record->ClassName) && $this->hasNewObject($record->ClassName)) {
                 if ($page->hasMethod('getElementalRelations')) {

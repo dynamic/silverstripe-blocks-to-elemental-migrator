@@ -55,9 +55,9 @@ class BlockElementTranslator
 
             $element->write();
 
-            if (!empty($relations)) {
+            /*if (!empty($relations)) {
                 static::duplicateRelations($block, $element, $relations);
-            }
+            }*/
 
             if ($block->hasMethod('isPublished')) {
                 $element->writeToStage(Versioned::DRAFT);

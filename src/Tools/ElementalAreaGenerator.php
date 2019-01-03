@@ -17,8 +17,10 @@ use SilverStripe\Versioned\Versioned;
 class ElementalAreaGenerator
 {
     /**
-     * @param $object
-     * @return mixed
+     * @param $object Page or DataObject with an Elemental Area (previously Block Area)
+     * @param $area The Block Area name
+     * @return \SilverStripe\ORM\DataObject
+     * @throws \SilverStripe\ORM\ValidationException
      */
     public static function find_or_make_elemental_area($object, $area)
     {
@@ -30,7 +32,7 @@ class ElementalAreaGenerator
             $areaName = static::get_default_area_by_page($object);
         }
 
-        Message::terminal("Attempting to resolve {$area} area for {$object->ClassName} - {$object->ID} with {$areaName}");
+        Message::terminal("Attempting to resolve {$area} area for {$object->singular_name()} with {$areaName}");
 
         $areaID = $areaName . 'ID';
         if (!$object->$areaID) {
@@ -54,7 +56,7 @@ class ElementalAreaGenerator
 
         $resultingArea = ElementalArea::get()->filter('ID', $object->$areaID)->first();
 
-        Message::terminal("Resolved with area {$resultingArea->ClassName} - {$resultingArea->ID}.\n\n");
+        Message::terminal("Resolved with an ElementalArea of ID {$resultingArea->ID}.\n\n");
 
         return $resultingArea;
     }
