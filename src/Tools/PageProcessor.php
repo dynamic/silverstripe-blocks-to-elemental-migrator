@@ -5,6 +5,7 @@ namespace Dynamic\BlockMigration\Tools;
 use DNADesign\Elemental\Models\BaseElement;
 use DNADesign\Elemental\Models\ElementalArea;
 use Dynamic\BlockMigration\Tasks\BlocksToElementsTask;
+use Dynamic\DynamicBlocks\Block\PageSectionBlock;
 use SheaDawson\Blocks\BlockManager;
 use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Config\Config;
@@ -162,6 +163,8 @@ class PageProcessor
             foreach ($this->getMappedAreasByClass($page->ClassName) as $area => $title) {
                 $this->processBlockRecords($page, $area, $this->getPageBlocksByArea($page, $area));
             }
+
+            $this->processBlockRecords($page, null, $this->getPageBlocksByArea($page, null));
         }
 
         Config::modify()->set(BlockManager::class, 'options', $original);
@@ -185,6 +188,11 @@ class PageProcessor
      */
     protected function processBlockRecords($page, $area, $records)
     {
+        if ($area == null) {
+            $area = 'ElementalArea';
+            $null = true;
+        }
+
         $area = ElementalAreaGenerator::find_or_make_elemental_area($page, $area);
         $mapping = $this->getMigrationMapping();
 
@@ -227,7 +235,7 @@ class PageProcessor
                 }
             }
 
-            Message::terminal("End migrating {$record->ClassName}.\n\n");//*/
+            Message::terminal("End migrating {$record->ClassName}.\n\n");
         }//*/
     }
 

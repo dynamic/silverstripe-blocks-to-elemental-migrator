@@ -264,11 +264,7 @@ class BlockElementTranslator
             // Don't write on duplicate; Wait until ParentID is available later.
             // writeRelations() will eventually write these records when converting
             // from UnsavedRelationList
-            if (!$newInstance) {
-                $clonedItem = $item->duplicate(false);
-            } else {
-                $clonedItem = static::find_or_make_object($newInstance, $item);
-            }
+            $clonedItem = static::find_or_make_object($newInstance, $item);
 
             if ($clonedItem->hasExtension(Versioned::class)) {
                 $clonedItem->writeToStage(Versioned::DRAFT);
