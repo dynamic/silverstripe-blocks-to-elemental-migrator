@@ -217,6 +217,7 @@ class PageProcessor
                     $element = BlockElementTranslator::translate_block(
                         $record,
                         $mapping[$record->ClassName]['NewObject'],
+                        $area->ID,
                         $relations
                     );
 
