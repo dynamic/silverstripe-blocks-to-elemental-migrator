@@ -166,7 +166,10 @@ class PageProcessor
                 $this->processBlockRecords($page, $area, $this->getPageBlocksByArea($page, $area));
             }
 
-            $this->processBlockRecords($page, null, $this->getPageBlocksByArea($page, null));
+            if (count($this->getPageBlocksByArea($page, null))) {
+                $this->processBlockRecords($page, null, $this->getPageBlocksByArea($page, null));
+            }
+
         }
 
         Config::modify()->set(BlockManager::class, 'options', $original);
