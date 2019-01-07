@@ -152,7 +152,7 @@ class PageProcessor
     public function processPage(SiteTree $page)
     {
         Message::terminal("Processing page {$page->Title}");
-        
+
         $original = $updated = BlockManager::singleton()->config()->get('options');
         $updated['use_blocksets'] = false;
         $class = $page->ClassName;

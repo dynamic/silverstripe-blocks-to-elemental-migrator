@@ -223,43 +223,6 @@ class BlockElementTranslator
     }
 
     /**
-     * @param $newClass
-     * @param $legacyObject
-     * @return mixed
-     */
-    protected static function find_or_make_object($newClass, $legacyObject)
-    {
-        if (!$newClass::singleton()->hasField('LegacyID')) {
-            $newObject = static::new_object($newClass, $legacyObject);
-        } elseif (!$newObject = $newClass::get()->filter('LegacyID', $legacyObject->ID)->first()) {
-            $newObject = static::new_object($newClass, $legacyObject);
-        }
-
-        return $newObject;
-    }
-
-    /**
-     * @param $newClass
-     * @param $legacyObject
-     * @return mixed
-     */
-    protected static function new_object($newClass, $legacyObject)
-    {
-        /** @var DataObject $newInstance */
-        $newObject = Injector::inst()->create($newClass, $legacyObject->toMap(), false);
-        if ($newObject->hasField('LegacyID')) {
-            $newObject->LegacyID = $newObject->ID;
-            $newObject->ID = null;
-        }
-
-        $newObject->setClassName($newClass);
-        $newObject->populateDefaults();
-        $newObject->forceChange();
-
-        return $newObject;
-    }
-
-    /**
      * Duplicates a single many_many relation from one object to another.
      *
      * @param DataObject $sourceObject
@@ -290,18 +253,22 @@ class BlockElementTranslator
             // Don't write on duplicate; Wait until ParentID is available later.
             // writeRelations() will eventually write these records when converting
             // from UnsavedRelationList
-            $clonedItem = static::find_or_make_object($newInstance, $item);
+            $clonedItem = ($newInstance !== false) ? static::new_object($newInstance, $item) : $item;
 
-            if ($clonedItem->hasExtension(Versioned::class)) {
-                $clonedItem->writeToStage(Versioned::DRAFT);
-                $clonedItem->publishRecursive();
+            if ($clonedItem !== false) {
+                if ($clonedItem->hasExtension(Versioned::class)) {
+                    $clonedItem->writeToStage(Versioned::DRAFT);
+                    $clonedItem->publishRecursive();
+                } else {
+                    $clonedItem->write();
+                }
+
+                Message::terminal("new {$newInstance} created from {$clonedItem->ClassName}:{$clonedItem->ID}");
+
+                $dest->add($clonedItem);
             } else {
-                $clonedItem->write();
+                Message::terminal("Error attempting to create item for {$sourceObject->singular_name()}'s {$blockRelation} relation'");
             }
-
-            Message::terminal("new {$newInstance} created from {$clonedItem->ClassName}:{$clonedItem->ID}");
-
-            $dest->add($clonedItem);
         }
     }
 
@@ -392,6 +359,52 @@ class BlockElementTranslator
         return ($sourceObject->getRelationClass($blockRelation) == $destinationObject->getRelationClass($elementRelation))
             ? false
             : $destinationObject->getRelationClass($elementRelation);
+    }
+
+    /**
+     * @param $newClass
+     * @param $legacyObject
+     * @return mixed
+     */
+    protected static function find_or_make_object($newClass, $legacyObject)
+    {
+        if ($newClass === false) {
+            return $legacyObject;
+        }
+
+        if (!class_exists($newClass)) {
+            return false;
+        }
+
+        if (!$newClass::singleton()->hasField('LegacyID')) {
+            $newObject = static::new_object($newClass, $legacyObject);
+        } elseif (!$newObject = $newClass::get()->filter('LegacyID', $legacyObject->ID)->first()) {
+            $newObject = static::new_object($newClass, $legacyObject);
+        }
+
+        return $newObject;
+    }
+
+    /**
+     * @param $newClass
+     * @param $legacyObject
+     * @return mixed
+     */
+    protected static function new_object($newClass, $legacyObject)
+    {
+        /** @var DataObject $newInstance */
+        $newObject = Injector::inst()->create($newClass, $legacyObject->toMap(), false);
+        if ($newObject->hasField('LegacyID')) {
+            $newObject->LegacyID = $newObject->ID;
+        }
+
+        $newObject->ID = null;
+
+        $newObject->setClassName($newClass);
+        $newObject->populateDefaults();
+        $newObject->forceChange();
+
+        return $newObject;
     }
 
     /**
