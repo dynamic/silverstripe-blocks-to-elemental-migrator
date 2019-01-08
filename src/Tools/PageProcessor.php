@@ -23,6 +23,11 @@ class PageProcessor
     use Extensible;
 
     /**
+     * @var bool
+     */
+    private static $publish_none_area = true;
+
+    /**
      * @var BlockManager
      */
     private $block_manager;
@@ -163,16 +168,46 @@ class PageProcessor
             $this->setPage($page);
 
             foreach ($this->getMappedAreasByClass($page->ClassName) as $area => $title) {
-                $this->processBlockRecords($page, $area, $this->getPageBlocksByArea($page, $area));
+                $this->processBlockRecords($page::get()->byID($page->ID), $area,
+                    $this->getPageBlocksByArea($page, $area));
             }
 
-            if (count($this->getPageBlocksByArea($page, null))) {
-                $this->processBlockRecords($page, null, $this->getPageBlocksByArea($page, null));
-            }
+            if (count($this->getPageBlocksByArea($page::get()->byID($page->ID), null))) {
+                $default = $this->getDefaultBlockArea($page);
 
+                echo "\n\n\n\n\n\n========== Additional unassigned blocks on page ==========\n\n\n";
+                Message::terminal("\$this->processBlockRecords({$page->ID}, {$default}, \$this->getPageBlocksByArea({$page->ID}, null))");
+
+                $this->processBlockRecords($page::get()->byID($page->ID), $default,
+                    $this->getPageBlocksByArea($page, null), $this->config()->get('publish_none_area'));
+
+                echo "\n\n\n========== End additional unassigned blocks on page ==========\n\n\n\n\n\n";
+            }
         }
 
         Config::modify()->set(BlockManager::class, 'options', $original);
+    }
+
+    /**
+     * @param $record
+     * @return bool|mixed
+     */
+    protected function getDefaultBlockArea($record)
+    {
+        $config = BlocksToElementsTask::config();
+        $classDefaults = $config->get('default_block_areas');
+
+        if ($classDefaults && is_array($classDefaults)) {
+            if (array_key_exists($record->ClassName, $classDefaults)) {
+                return $classDefaults[$record->ClassName];
+            }
+        }
+
+        if ($config->get('default_block_area')) {
+            return $config->get('default_block_area');
+        }
+
+        return null;
     }
 
     /**
@@ -191,18 +226,14 @@ class PageProcessor
 
     /**
      * @param $page The page owning the existing blocks and the new elements
-     * @param $area The name of the BlockArea the records belong to
+     * @param $areaName The name of the BlockArea the records belong to
      * @param $records The legacy block records to migrate to elements
+     * @param bool $publish Publish the new element records if available
      * @throws \SilverStripe\ORM\ValidationException
      */
-    protected function processBlockRecords($page, $area, $records)
+    protected function processBlockRecords($page, $areaName, $records, $publish = true)
     {
-        if ($area == null) {
-            $area = 'AfterContent';
-            $null = true;
-        }
-
-        $area = ElementalAreaGenerator::find_or_make_elemental_area($page, $area);
+        $area = ElementalAreaGenerator::find_or_make_elemental_area($page, $areaName);
         $mapping = $this->getMigrationMapping();
 
         /**
@@ -235,10 +266,8 @@ class PageProcessor
                         $element->writeToStage(Versioned::DRAFT);
 
                         //don't publish if they were in the "None" block area
-                        if (!isset($null)) {
-                            if ($record->isPublished()) {
-                                $element->publishRecursive();
-                            }
+                        if ($record->isPublished() && $publish) {
+                            $element->publishRecursive();
                         }
                     } else {
                         $element->write();

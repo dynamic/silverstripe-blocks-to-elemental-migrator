@@ -35,7 +35,8 @@ class ElementalAreaGenerator
         Message::terminal("Attempting to resolve {$area} area for {$object->singular_name()} with {$areaName}");
 
         $areaID = $areaName . 'ID';
-        if (!$object->$areaID) {
+        
+        if ($object->$areaID == 0) {
             Message::terminal("No area currently set, attempting to create");
             $elementalArea = ElementalArea::create();
             $elementalArea->OwnerClassName = $object->ClassName;
@@ -72,9 +73,14 @@ class ElementalAreaGenerator
             $baseTable = $object->getSchema()->tableForField($object->ClassName, $relationColumn);
 
             if ($baseTable && $baseTable != '') {
-                DB::prepared_query("UPDATE \"{$baseTable}\" SET \"{$relationColumn}\" = ? WHERE ID = ?", [$elementalArea->ID, $object->ID]);
-                DB::prepared_query("UPDATE \"{$baseTable}_Live\" SET \"{$relationColumn}\" = ? WHERE ID = ?", [$elementalArea->ID, $object->ID]);
-                DB::prepared_query("UPDATE \"{$baseTable}_Versions\" SET \"{$relationColumn}\" = ? WHERE RecordID = ?", [$elementalArea->ID, $object->ID]);
+                DB::prepared_query("UPDATE `{$baseTable}` SET `{$relationColumn}` = ? WHERE ID = ?",
+                    [$elementalArea->ID, $object->ID]);
+                DB::prepared_query("UPDATE `{$baseTable}_Live` SET `{$relationColumn}` = ? WHERE ID = ?",
+                    [$elementalArea->ID, $object->ID]);
+                DB::prepared_query("UPDATE `{$baseTable}_Versions` SET `{$relationColumn}` = ? WHERE RecordID = ?",
+                    [$elementalArea->ID, $object->ID]);
+                
+                return $object::get()->byID($object->ID);
             } else {
                 Message::terminal("Couldn't update relation for {$object->ClassName} - {$object->ID}, Area {$relationColumn} - {$elementalArea->ID}");
             }
@@ -91,11 +97,15 @@ class ElementalAreaGenerator
      */
     protected static function get_default_area_by_page($page)
     {
-        $config = BlocksToElementsTask::singleton()->config();
+        $config = BlocksToElementsTask::config();
         $defaults = $config->get('default_areas');
 
         if (isset($defaults[$page->ClassName])) {
             return $defaults[$page->ClassName];
+        }
+
+        if ($config->get('default_block_area')) {
+            return $config->get('default_block_area');
         }
 
         return $config->get('default_area');
